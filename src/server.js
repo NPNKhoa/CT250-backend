@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import { connectDb } from './configs/dbConnection.js';
 
-dotenv.config();
+dotenv.config({path: `${process.cwd()}/.env`});
 
 connectDb();
 
@@ -24,6 +24,12 @@ app.use(logger('dev'));
 app.get('/', () => {
   console.log('Hello World!!!');
 });
+
+app.use('*', (_, res) => {
+  res.status(404).json({
+    error: 'Oops... Can not found this route!!!',
+  })
+})
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
