@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import logger from 'morgan';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import path from 'path';
 
 import { connectDb } from './configs/dbConnection.js';
 
@@ -25,8 +26,9 @@ app.use(bodyParser.json());
 app.use(express.json());
 app.use(logger('dev'));
 
-app.get('/', (req) => {
-  console.log(req.body);
+app.use('/uploads', express.static(path.join(path.dirname(''), 'uploads')));
+
+app.get('/', () => {
   console.log('Hello World!!!');
 });
 

@@ -156,7 +156,7 @@ export const signUp = async (req, res) => {
       phone,
       gender,
       dateOfBirth,
-      imageFilePath,
+      avatarImagePath: imageFilePath,
       role: roleId,
       address,
     });
@@ -167,10 +167,7 @@ export const signUp = async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      { userId: existingUser._id },
-      process.env.JWT_SECRET
-    );
+    const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET);
 
     res.status(201).json({
       data: {
@@ -179,7 +176,7 @@ export const signUp = async (req, res) => {
         phone,
         gender,
         dateOfBirth,
-        imageFilePath,
+        avatarImagePath: imageFilePath,
         role,
         address,
       },
