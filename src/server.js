@@ -6,6 +6,8 @@ import cors from 'cors';
 import path from 'path';
 
 import { connectDb } from './configs/dbConnection.js';
+import passport from './configs/passportConfig.js';
+import './configs/passportConfig.js';
 
 import authRoute from './routes/auth.route.js';
 
@@ -29,6 +31,17 @@ app.use(logger('dev'));
 app.use('/uploads', express.static(path.join(path.dirname(''), 'uploads')));
 
 app.use(`/api/${apiVersion}/auth`, authRoute);
+app.get(
+  '/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+app.get(
+  '/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/' })
+),
+  (req, res) => {
+    res.redirect('/login');
+  };
 
 app.use('*', (_, res) => {
   res.status(404).json({

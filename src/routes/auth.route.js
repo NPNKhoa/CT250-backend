@@ -7,6 +7,7 @@ import {
   logout,
   signUp,
 } from '../controllers/auth.controller.js';
+
 import upload from '../configs/multerConfig.js';
 
 const router = express.Router();
