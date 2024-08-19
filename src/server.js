@@ -28,10 +28,6 @@ app.use(logger('dev'));
 
 app.use('/uploads', express.static(path.join(path.dirname(''), 'uploads')));
 
-app.get('/', () => {
-  console.log('Hello World!!!');
-});
-
 app.use(`/api/${apiVersion}/auth`, authRoute);
 
 app.use('*', (_, res) => {
