@@ -30,6 +30,13 @@ app.use(logger('dev'));
 
 app.use('/uploads', express.static(path.join(path.dirname(''), 'uploads')));
 
+app.get('/check', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'Server is running',
+  });
+});
+
 app.use(`/api/${apiVersion}/auth`, authRoute);
 app.get(
   '/auth/google',
