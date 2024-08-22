@@ -72,27 +72,13 @@ export const signUp = async (req, res) => {
       address,
     } = req.body;
 
-    if (!fullname || !email || !password || !phone || !gender) {
+    if (!fullname || !email || !password || !phone) {
       return res.status(400).json({
         error: 'Missing required fields!!!',
       });
     }
 
-    const imageFile = req.file;
-
-    if (!imageFile) {
-      return res.status(400).json({
-        error: 'File not found!',
-      });
-    }
-
-    const imageFilePath = imageFile.path;
-
-    if (!imageFilePath) {
-      return res.status(400).json({
-        error: 'File path not found!!!',
-      });
-    }
+    const imageFilePath = req?.file?.path || '';
 
     if (!validateEmail(email)) {
       return res.status(400).json({
