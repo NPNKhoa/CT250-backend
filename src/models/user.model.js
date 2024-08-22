@@ -68,6 +68,14 @@ const userSchema = new mongoose.Schema(
         default: false,
       },
     },
+    googleId: {
+      type: String,
+      unique: true,
+    },
+    refreshToken: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

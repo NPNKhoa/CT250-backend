@@ -9,6 +9,7 @@ import {
   validGenders,
   validRoles,
 } from '../utils/validation.js';
+import generateToken from '../utils/generateToken.js';
 
 export const addRole = async (req, res) => {
   try {
@@ -72,27 +73,13 @@ export const signUp = async (req, res) => {
       address,
     } = req.body;
 
-    if (!fullname || !email || !password || !phone || !gender) {
+    if (!fullname || !email || !password || !phone) {
       return res.status(400).json({
         error: 'Missing required fields!!!',
       });
     }
 
-    const imageFile = req.file;
-
-    if (!imageFile) {
-      return res.status(400).json({
-        error: 'File not found!',
-      });
-    }
-
-    const imageFilePath = imageFile.path;
-
-    if (!imageFilePath) {
-      return res.status(400).json({
-        error: 'File path not found!!!',
-      });
-    }
+    const imageFilePath = req?.file?.path || '';
 
     if (!validateEmail(email)) {
       return res.status(400).json({
@@ -167,7 +154,13 @@ export const signUp = async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET);
+    const { accessToken, refreshToken } = generateToken({
+      userId: newUser._id,
+    });
+
+    newUser.refreshToken = refreshToken;
+
+    await newUser.save();
 
     res.status(201).json({
       data: {
@@ -180,7 +173,8 @@ export const signUp = async (req, res) => {
         role,
         address,
       },
-      token,
+      token: accessToken,
+      refreshToken,
       error: false,
       message: 'User created successfully!',
     });
@@ -221,10 +215,13 @@ export const login = async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      { userId: existingUser._id },
-      process.env.JWT_SECRET
-    );
+    const { accessToken, refreshToken } = generateToken({
+      userId: existingUser._id,
+    });
+
+    existingUser.refreshToken = refreshToken;
+
+    await existingUser.save();
 
     const responseUser = {
       _id: existingUser._id,
@@ -239,7 +236,44 @@ export const login = async (req, res) => {
 
     res.status(200).json({
       data: responseUser,
-      token,
+      token: accessToken,
+      refreshToken,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        error: 'No token provided!',
+      });
+    }
+
+    const existingUser = await User.findOne({ refreshToken });
+
+    if (!existingUser) {
+      return res.status(401).json({
+        error: 'Invalid token',
+      });
+    }
+
+    const token = generateToken({
+      userId: existingUser._id,
+    });
+
+    existingUser.refreshToken = token.refreshToken;
+
+    await existingUser.save();
+
+    res.status(200).json({
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken,
       error: false,
     });
   } catch (error) {
@@ -249,6 +283,24 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
+    const { userId } = req.userId;
+
+    const existingUser = await User.findById(userId);
+
+    if (!existingUser) {
+      return res.status(404).json({
+        error: 'User not found!',
+      });
+    }
+
+    existingUser.refreshToken = null;
+
+    await existingUser.save();
+
+    res.status(204).json({
+      message: 'Logout successfully!',
+      error: false,
+    });
   } catch (error) {
     logError(error, res);
   }
