@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 
-import { logError } from '../utils/logError.js';
+import logError from '../utils/logError.js';
 
-import User from '../models/user.model.js';
+import { User } from '../models/user.model.js';
 
 export const auth = async (req, res, next) => {
   try {
@@ -14,17 +14,29 @@ export const auth = async (req, res, next) => {
       });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, async (error, payload) => {
-      if (error) {
-        return res.status(401).json({
-          error: 'Invalid Token! Please login again',
-        });
+    jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET,
+      async (error, payload) => {
+        if (error && error.name === 'TokenExpiredError') {
+          return res.status(401).json({
+            error: 'Token expired!',
+          });
+        } else if (error && error.name === 'JsonWebTokenError') {
+          return res.status(401).json({
+            error: 'Invalid Token!',
+          });
+        } else if (error) {
+          return res.status(401).json({
+            error: 'Authentication error!',
+          });
+        }
+
+        req.userId = payload;
+
+        next();
       }
-
-      req.userId = payload;
-
-      next();
-    });
+    );
   } catch (error) {
     logError(error, res);
   }
@@ -32,7 +44,7 @@ export const auth = async (req, res, next) => {
 
 export const isAdmin = async (req, res, next) => {
   try {
-    const userId = req.userId;
+    const { userId } = req.userId;
 
     if (!userId) {
       return res.status(401).json({
