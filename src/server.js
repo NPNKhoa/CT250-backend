@@ -35,6 +35,7 @@ app.use('/uploads', express.static(path.join(path.dirname(''), 'uploads')));
 app.use(`/api/${apiVersion}/auth`, authRoute);
 app.use(`/api/${apiVersion}/products`, productRoute);
 app.use(`/api/${apiVersion}/brands`, brandRoute);
+app.use(`/api/${apiVersion}/product-types`, brandRoute);
 app.get(
   '/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
