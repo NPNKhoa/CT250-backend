@@ -22,6 +22,7 @@ const ProductTypeSchema = new mongoose.Schema(
     productTypeName: {
       type: String,
       required: true,
+      unique: true,
     },
   },
   {
@@ -34,6 +35,7 @@ const PromotionSchema = new mongoose.Schema(
     promotionName: {
       type: String,
       required: true,
+      unique: true,
     },
   },
   {

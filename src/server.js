@@ -12,6 +12,10 @@ import './configs/passportConfig.js';
 import authRoute from './routes/auth.route.js';
 import productRoute from './routes/product.route.js';
 import brandRoute from './routes/brand.route.js';
+import productTypeRoute from './routes/productType.route.js';
+import promotionRoute from './routes/promotion.route.js';
+import discountRoute from './routes/discount.route.js';
+import specificationRoute from './routes/specification.route.js';
 
 dotenv.config({ path: `${process.cwd()}/.env` });
 
@@ -42,7 +46,10 @@ app.get('/check', (req, res) => {
 app.use(`/api/${apiVersion}/auth`, authRoute);
 app.use(`/api/${apiVersion}/products`, productRoute);
 app.use(`/api/${apiVersion}/brands`, brandRoute);
-app.use(`/api/${apiVersion}/product-types`, brandRoute);
+app.use(`/api/${apiVersion}/product-types`, productTypeRoute);
+app.use(`/api/${apiVersion}/promotion`, promotionRoute);
+app.use(`/api/${apiVersion}/discount`, discountRoute);
+app.use(`/api/${apiVersion}/specification`, specificationRoute);
 app.get(
   '/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
