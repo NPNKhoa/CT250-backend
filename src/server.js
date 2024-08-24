@@ -12,6 +12,8 @@ import './configs/passportConfig.js';
 import authRoute from './routes/auth.route.js';
 import productRoute from './routes/product.route.js';
 import brandRoute from './routes/brand.route.js';
+import productTypeRoute from './routes/productType.route.js';
+import promotionRoute from './routes/promotion.route.js';
 
 dotenv.config({ path: `${process.cwd()}/.env` });
 
@@ -35,7 +37,8 @@ app.use('/uploads', express.static(path.join(path.dirname(''), 'uploads')));
 app.use(`/api/${apiVersion}/auth`, authRoute);
 app.use(`/api/${apiVersion}/products`, productRoute);
 app.use(`/api/${apiVersion}/brands`, brandRoute);
-app.use(`/api/${apiVersion}/product-types`, brandRoute);
+app.use(`/api/${apiVersion}/product-types`, productTypeRoute);
+app.use(`/api/${apiVersion}/promotion`, promotionRoute);
 app.get(
   '/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
