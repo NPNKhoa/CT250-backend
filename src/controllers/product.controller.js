@@ -16,13 +16,14 @@ export const getAllProducts = async (req, res) => {
     const products = await Product.find(query)
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
-      .populate('productBrand', 'brandName')
-
-      .populate('promotion', 'promotionName')
+      .populate('productType', 'productTypeName -_id')
+      .populate('productBrand', 'brandName brandDesc -_id')
       .populate(
         'technicalSpecification.specificationName',
-        'specificationName'
-      );
+        'specificationName -_id'
+      )
+      .populate('promotion', 'promotionName promotionExpiredDate -_id')
+      .populate('discount', 'discountPercent discountExpiredDate -_id');
 
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(404).json({
@@ -58,7 +59,15 @@ export const getProductById = async (req, res) => {
       });
     }
 
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId)
+      .populate('productType', 'productTypeName -_id')
+      .populate('productBrand', 'brandName brandDesc -_id')
+      .populate(
+        'technicalSpecification.specificationName',
+        'specificationName -_id'
+      )
+      .populate('promotion', 'promotionName promotionExpiredDate -_id')
+      .populate('discount', 'discountPercent discountExpiredDate -_id');
 
     if (!product) {
       return res.status(404).json({

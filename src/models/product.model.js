@@ -37,6 +37,10 @@ const PromotionSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    promotionExpiredDate: {
+      type: Date,
+      required: true,
+    },
   },
   {
     timestamps: true,
