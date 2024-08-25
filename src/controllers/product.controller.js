@@ -157,6 +157,9 @@ export const updateProduct = async (req, res) => {
         ? existingProduct.countInStock + payload.countInStock
         : existingProduct.countInStock;
 
+    updateFields.discountedPrice =
+      payload.discountedPrice || existingProduct.discountedPrice;
+
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
       { $set: updateFields },
