@@ -1,10 +1,10 @@
-import { Brand, ProductType } from '../models/product.model.js';
+import { ProductType } from '../models/product.model.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 import logError from '../utils/logError.js';
 
 export const getAllTypes = async (req, res) => {
   try {
-    const { type = '', page = 1, limit = 10 } = req.body;
+    const { type = '', page = 1, limit = 10 } = req.query;
 
     const query = {};
 
@@ -16,13 +16,15 @@ export const getAllTypes = async (req, res) => {
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
+    console.log(productTypes);
+
     if (!Array.isArray(productTypes) || productTypes.length === 0) {
       return res.status(404).json({
         error: 'Product types not found',
       });
     }
 
-    const totalDocs = Brand.countDocuments(query);
+    const totalDocs = await ProductType.countDocuments(query);
     const totalPages = Math.ceil(totalDocs / limit);
 
     res.status(200).json({
@@ -32,7 +34,7 @@ export const getAllTypes = async (req, res) => {
         totalDocs,
         totalPages,
         currentPage: page,
-        limit: parseInt(limit),
+        limit,
       },
     });
   } catch (error) {
