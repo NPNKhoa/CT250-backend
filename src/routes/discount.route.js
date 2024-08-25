@@ -5,7 +5,7 @@ import {
   getAllDiscount,
   getDiscountById,
   updateDiscount,
-} from '../controllers/discount.controller';
+} from '../controllers/discount.controller.js';
 
 const router = express.Router();
 

@@ -1,6 +1,6 @@
 import { Specification } from '../models/product.model.js';
-import { isValidObjectId } from '../utils/isValidObjectId';
-import logError from '../utils/logError';
+import { isValidObjectId } from '../utils/isValidObjectId.js';
+import logError from '../utils/logError.js';
 
 export const getAllSpecifications = async (req, res) => {
   try {

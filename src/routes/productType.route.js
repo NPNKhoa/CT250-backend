@@ -5,7 +5,7 @@ import {
   getAllTypes,
   getTypeById,
   updateType,
-} from '../controllers/productType.controller';
+} from '../controllers/productType.controller.js';
 
 const router = express.Router();
 
