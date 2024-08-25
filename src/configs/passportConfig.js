@@ -3,7 +3,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import dotenv from 'dotenv';
 dotenv.config({ path: `${process.cwd()}/.env` });
 
-import { User } from '../models/user.model.js';
+import { User, UserRole } from '../models/user.model.js';
 
 passport.use(
   new GoogleStrategy(
@@ -17,6 +17,8 @@ passport.use(
       try {
         let user = await User.findOne({ googleId: profile.id });
 
+        const customerRole = await UserRole.findOne({ role: 'customer' });
+
         if (!user) {
           user = new User({
             googleId: profile.id,
@@ -24,7 +26,7 @@ passport.use(
             email: profile.email[0].value,
             phone: '',
             gender: 'male', // fix this later
-            role: 'customer',
+            role: customerRole._id,
             avatarImagePath: profile.photos[0].value,
           });
 
