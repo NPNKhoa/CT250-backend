@@ -1,5 +1,4 @@
 // config/multerConfig.js
-
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -17,14 +16,10 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, Date.now() + path.extname(file.originalname));
+    cb(null, uniqueSuffix + path.extname(file.originalname)); // Đặt tên tệp tin với hậu tố duy nhất
   },
 });
 
-// Giới hạn kích thước file và loại file
-const upload = multer({
-  storage: storage,
-  dest: 'uploads/',
-});
+const upload = multer({ storage: storage });
 
 export default upload;
