@@ -5,7 +5,7 @@ import {
   getAllPromotions,
   getPromotionById,
   updatePromotion,
-} from '../controllers/promotion.controller';
+} from '../controllers/promotion.controller.js';
 
 const router = express.Router();
 

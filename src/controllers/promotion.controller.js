@@ -1,6 +1,6 @@
 import { Promotion } from '../models/product.model.js';
-import { isValidObjectId } from '../utils/isValidObjectId';
-import logError from '../utils/logError';
+import { isValidObjectId } from '../utils/isValidObjectId.js';
+import logError from '../utils/logError.js';
 
 export const getAllPromotions = async (req, res) => {
   try {

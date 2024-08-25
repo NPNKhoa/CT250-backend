@@ -64,6 +64,7 @@ const SpecificationSchema = new mongoose.Schema(
     specificationName: {
       type: String,
       required: true,
+      unique: true,
     },
   },
   {

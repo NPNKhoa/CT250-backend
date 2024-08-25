@@ -1,8 +1,8 @@
 import { parseISO, isFuture, isValid } from 'date-fns';
 
-import { Discount } from '../models/product.model';
-import { isValidObjectId } from '../utils/isValidObjectId';
-import logError from '../utils/logError';
+import { Discount } from '../models/product.model.js';
+import { isValidObjectId } from '../utils/isValidObjectId.js';
+import logError from '../utils/logError.js';
 
 export const getAllDiscount = async (req, res) => {
   try {

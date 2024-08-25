@@ -5,7 +5,7 @@ import {
   getAllSpecifications,
   getSpecificationById,
   updateSpecification,
-} from '../controllers/specification.controller';
+} from '../controllers/specification.controller.js';
 
 const router = express.Router();
 
