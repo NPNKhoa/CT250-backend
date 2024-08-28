@@ -31,6 +31,7 @@ export const productValidation = async (productInfo) => {
     technicalSpecification,
     countInStock,
     price,
+    discountedPrice,
     description,
     avgStar = 0,
   } = productInfo;
@@ -125,11 +126,21 @@ export const productValidation = async (productInfo) => {
     }
   }
 
+  const expiredDate = new Date(existingDiscount.discountExpiredDate).getTime();
+
+  const now = Date.now();
+
+  let newPrice = 0;
+  if (expiredDate >= now) {
+    newPrice = price - price * (existingDiscount.discountPercent / 100);
+  }
+
   const returnedPayload = {
     productName,
     productBrand,
     productType,
     discount,
+    discountedPrice: newPrice,
     promotion,
     technicalSpecification: technicalSpecs,
     countInStock,
