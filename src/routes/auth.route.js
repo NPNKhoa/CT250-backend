@@ -20,7 +20,7 @@ router.post('/login', login);
 
 router.post('/refresh', refreshToken);
 
-router.post('/logout', logout);
+router.post('/logout', auth, logout);
 
 router.post('/add-role', auth, isAdmin, addRole);
 
