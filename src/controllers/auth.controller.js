@@ -111,12 +111,6 @@ export const signUp = async (req, res) => {
       });
     }
 
-    if (!validGenders.includes(gender)) {
-      return res.status(400).json({
-        error: 'Invalid gender!',
-      });
-    }
-
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -297,10 +291,7 @@ export const logout = async (req, res) => {
 
     await existingUser.save();
 
-    res.status(204).json({
-      message: 'Logout successfully!',
-      error: false,
-    });
+    res.sendStatus(204);
   } catch (error) {
     logError(error, res);
   }
