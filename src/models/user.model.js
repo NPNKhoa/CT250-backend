@@ -10,6 +10,34 @@ const userRoleSchema = new mongoose.Schema({
   },
 });
 
+const addressSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'User',
+    },
+    province: {
+      type: String,
+      default: '',
+    },
+    district: {
+      type: String,
+      default: '',
+    },
+    commune: {
+      type: String,
+      default: '',
+    },
+    detail: {
+      type: String,
+      default: '',
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
 const userSchema = new mongoose.Schema(
   {
     fullname: {
@@ -45,27 +73,15 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Types.ObjectId,
       ref: 'UserRole',
     },
-    address: {
-      province: {
-        type: String,
-        default: '',
+    address: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: 'Address',
       },
-      district: {
-        type: String,
-        default: '',
-      },
-      commune: {
-        type: String,
-        default: '',
-      },
-      detail: {
-        type: String,
-        default: '',
-      },
-      isDefault: {
-        type: Boolean,
-        default: false,
-      },
+    ],
+    defaultAddress: {
+      type: mongoose.Types.ObjectId,
+      ref: 'Address',
     },
     googleId: {
       type: String,
@@ -82,6 +98,7 @@ const userSchema = new mongoose.Schema(
 );
 
 const UserRole = mongoose.model('UserRole', userRoleSchema);
+const Address = mongoose.model('Address', addressSchema);
 const User = mongoose.model('User', userSchema);
 
-export { User, UserRole };
+export { User, UserRole, Address };
