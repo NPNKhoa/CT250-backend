@@ -111,12 +111,6 @@ export const signUp = async (req, res) => {
       });
     }
 
-    if (!validGenders.includes(gender)) {
-      return res.status(400).json({
-        error: 'Invalid gender!',
-      });
-    }
-
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -164,17 +158,10 @@ export const signUp = async (req, res) => {
 
     res.status(201).json({
       data: {
-        fullname,
-        email,
-        phone,
-        gender,
-        dateOfBirth,
-        avatarImagePath: imageFilePath,
-        role,
-        address,
+        userId: newUser._id,
+        accessToken,
+        refreshToken,
       },
-      token: accessToken,
-      refreshToken,
       error: false,
       message: 'User created successfully!',
     });
@@ -223,21 +210,12 @@ export const login = async (req, res) => {
 
     await existingUser.save();
 
-    const responseUser = {
-      _id: existingUser._id,
-      fullname: existingUser.fullname,
-      email: existingUser.email,
-      phone: existingUser.phone,
-      gender: existingUser.gender,
-      dateOfBirth: existingUser.dateOfBirth,
-      avatarImagePath: existingUser.avatarImagePath,
-      address: existingUser.address,
-    };
-
     res.status(200).json({
-      data: responseUser,
-      token: accessToken,
-      refreshToken,
+      data: {
+        userId: existingUser._id,
+        accessToken,
+        refreshToken,
+      },
       error: false,
     });
   } catch (error) {
@@ -297,10 +275,7 @@ export const logout = async (req, res) => {
 
     await existingUser.save();
 
-    res.status(204).json({
-      message: 'Logout successfully!',
-      error: false,
-    });
+    res.sendStatus(204);
   } catch (error) {
     logError(error, res);
   }
