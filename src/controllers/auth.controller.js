@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
-import { User, UserRole } from '../models/user.model.js';
+import { Address, User, UserRole } from '../models/user.model.js';
 import logError from '../utils/logError.js';
 import {
   validateEmail,
@@ -67,10 +67,7 @@ export const signUp = async (req, res) => {
       password,
       confirmPassword,
       phone,
-      gender,
-      dateOfBirth,
       role = 'customer',
-      address,
     } = req.body;
 
     if (!fullname || !email || !password || !phone) {
@@ -135,11 +132,8 @@ export const signUp = async (req, res) => {
       email,
       password: hashedPassword,
       phone,
-      gender,
-      dateOfBirth,
       avatarImagePath: imageFilePath,
       role: roleId,
-      address,
     });
 
     if (!newUser) {

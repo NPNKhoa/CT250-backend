@@ -1,4 +1,4 @@
-import { User, UserRole } from '../models/user.model.js';
+import { Address, User, UserRole } from '../models/user.model.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 import logError from '../utils/logError.js';
 import { validateEmail, validatePhone } from '../utils/validation.js';
@@ -140,7 +140,8 @@ export const updateUserInfo = async (req, res) => {
       });
     }
 
-    const { fullname, email, phone, gender, dateOfBirth, address } = req.body;
+    const { fullname, email, phone, gender, dateOfBirth, defaultAddress } =
+      req.body;
 
     if (email && !validateEmail(email)) {
       return res.status(400).json({
@@ -154,22 +155,11 @@ export const updateUserInfo = async (req, res) => {
       });
     }
 
-    const { province, district, commune, detail, isDefault } =
-      address || existingUser.address;
-
-    if ('isDefault' in address && typeof isDefault !== 'boolean') {
+    if (!isValidObjectId(defaultAddress)) {
       return res.status(400).json({
-        error: 'isDefault must be a boolean value',
+        error: 'default address must be an object id',
       });
     }
-
-    const newAddress = {
-      province: province || existingUser.address.province,
-      district: district || existingUser.address.district,
-      commune: commune || existingUser.address.commune,
-      detail: detail || existingUser.address.detail,
-      isDefault: isDefault || existingUser.address.isDefault,
-    };
 
     const newInfo = {
       fullname: fullname || existingUser.fullname,
@@ -178,7 +168,7 @@ export const updateUserInfo = async (req, res) => {
       gender: gender || existingUser.gender,
       dateOfBirth: dateOfBirth || existingUser.dateOfBirth,
       fullname: fullname || existingUser.fullname,
-      address: newAddress,
+      defaultAddress: defaultAddress || existingUser.defaultAddress,
     };
 
     const updatedUser = await User.findByIdAndUpdate(userId, newInfo, {
@@ -251,6 +241,99 @@ export const updatePassword = async (req, res) => {
       message: 'Update password successfully',
       error: false,
     });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getUserAddress = async (req, res) => {
+  try {
+    const { id: userId } = req.params;
+
+    if (!userId || !isValidObjectId(userId)) {
+      return res.status(400).json({
+        error: 'Invalid Id',
+      });
+    }
+
+    const address = await Address.find({ userId });
+
+    if (!Array.isArray || address.length === 0) {
+      return res.status(404).json({
+        error: 'Can not found address for this user',
+      });
+    }
+
+    res.status(200).json({
+      data: address,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getAddressById = async (req, res) => {
+  try {
+    const { id: addressId } = req.params;
+
+    if (!addressId || !isValidObjectId(addressId)) {
+      return res.status(400).json({
+        error: 'Invalid Id',
+      });
+    }
+
+    const address = await Address.findById(addressId);
+
+    res.status(200).json({
+      data: address,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const updateAddress = async (req, res) => {
+  try {
+    const { id: addressId } = req.params;
+
+    if (!addressId || !isValidObjectId(addressId)) {
+      return res.status(400).json({
+        error: 'Invalid Id',
+      });
+    }
+
+    const newAddress = req.body;
+
+    const updatedAddress = await Address.findByIdAndUpdate(
+      addressId,
+      newAddress,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      data: updatedAddress,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const deleteAddress = async (req, res) => {
+  try {
+    const { id: addressId } = req.params;
+
+    if (!addressId || !isValidObjectId(addressId)) {
+      return res.status(400).json({
+        error: 'Invalid Id',
+      });
+    }
+
+    await Address.findByIdAndDelete(addressId);
+
+    res.status(204);
   } catch (error) {
     logError(error, res);
   }
