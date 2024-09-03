@@ -10,11 +10,11 @@ import { auth } from '../middlewares/authentication.js';
 
 const router = express.Router();
 
+router.get('/me', auth, getLoggedInUser);
+
 router.get('/:id', getUserById);
 
 router.get('/', getAllUsers);
-
-router.get('/me', auth, getLoggedInUser);
 
 router.put('/', auth, updateUserInfo);
 
