@@ -1,12 +1,8 @@
 import express from 'express';
 import {
-  deleteAddress,
-  getAddressById,
   getAllUsers,
   getLoggedInUser,
-  getUserAddress,
   getUserById,
-  updateAddress,
   updatePassword,
   updateUserInfo,
 } from '../controllers/user.controller.js';
