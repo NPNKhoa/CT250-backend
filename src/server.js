@@ -18,6 +18,7 @@ import discountRoute from './routes/discount.route.js';
 import specificationRoute from './routes/specification.route.js';
 import userRoute from './routes/user.route.js';
 import cartRoute from './routes/cart.route.js';
+import addressRoute from './routes/address.route.js';
 
 dotenv.config({ path: `${process.cwd()}/.env` });
 
@@ -54,6 +55,7 @@ app.use(`/api/${apiVersion}/discount`, discountRoute);
 app.use(`/api/${apiVersion}/specification`, specificationRoute);
 app.use(`/api/${apiVersion}/users`, userRoute);
 app.use(`/api/${apiVersion}/cart`, cartRoute);
+app.use(`/api/${apiVersion}/address`, addressRoute);
 app.get(
   '/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
