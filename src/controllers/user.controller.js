@@ -99,7 +99,7 @@ export const getUserById = async (req, res) => {
   try {
     const { id: userId } = req.params;
 
-    if (!id || !isValidObjectId(userId)) {
+    if (!userId || !isValidObjectId(userId)) {
       return res.status(400).json({
         error: 'Invalid Id',
       });

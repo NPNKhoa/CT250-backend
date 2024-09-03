@@ -28,12 +28,12 @@ router.put('/update-password', auth, updatePassword);
 
 // Address
 
-router.get('/:id', getAddressById);
+// router.get('/:id', getAddressById);
 
-router.get('/', getUserAddress);
+// router.get('/', getUserAddress);
 
-router.put('/update-address/:id', updateAddress);
+// router.put('/update-address/:id', updateAddress);
 
-router.delete('/address/:id', deleteAddress);
+// router.delete('/address/:id', deleteAddress);
 
 export default router;

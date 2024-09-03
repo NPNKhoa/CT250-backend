@@ -15,6 +15,7 @@ const addressSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Types.ObjectId,
       ref: 'User',
+      required: true,
     },
     province: {
       type: String,
@@ -72,6 +73,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: mongoose.Types.ObjectId,
       ref: 'UserRole',
+      required: true,
     },
     address: [
       {
@@ -85,7 +87,7 @@ const userSchema = new mongoose.Schema(
     },
     googleId: {
       type: String,
-      unique: true,
+      default: null,
     },
     refreshToken: {
       type: String,
