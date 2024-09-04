@@ -155,7 +155,7 @@ export const updateUserInfo = async (req, res) => {
       });
     }
 
-    if (!isValidObjectId(defaultAddress)) {
+    if (defaultAddress && !isValidObjectId(defaultAddress)) {
       return res.status(400).json({
         error: 'default address must be an object id',
       });
