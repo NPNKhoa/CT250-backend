@@ -12,9 +12,12 @@ const userRoleSchema = new mongoose.Schema({
 
 const addressSchema = new mongoose.Schema(
   {
-    userId: {
-      type: mongoose.Types.ObjectId,
-      ref: 'User',
+    fullname: {
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: String,
       required: true,
     },
     province: {
