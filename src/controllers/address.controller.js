@@ -107,6 +107,7 @@ export const createAddress = async (req, res) => {
       district,
       commune,
       detail,
+      isDefault,
     });
 
     existingUser.address.push(newAddress._id);
