@@ -4,7 +4,7 @@ import logError from '../utils/logError.js';
 
 export const getUserAddress = async (req, res) => {
   try {
-    const { id: userId } = req.params;
+    const { userId } = req.userId;
 
     if (!userId || !isValidObjectId(userId)) {
       return res.status(400).json({
@@ -12,7 +12,8 @@ export const getUserAddress = async (req, res) => {
       });
     }
 
-    const address = await Address.find({ userId });
+    const data = await User.findById(userId).populate('address');
+    const address = data?.address;
 
     if (!Array.isArray || address.length === 0) {
       return res.status(404).json({
@@ -72,12 +73,12 @@ export const createAddress = async (req, res) => {
     const existingUser = await User.findById(userId).populate({
       path: 'address',
       match: {
-        fullname: { $regex: fullname, $options: 'i' },
-        phone: { $regex: phone, $options: 'i' },
-        province: { $regex: province, $options: 'i' },
-        district: { $regex: district, $options: 'i' },
-        commune: { $regex: commune, $options: 'i' },
-        detail: { $regex: detail, $options: 'i' },
+        fullname: { $regex: String(fullname), $options: 'i' },
+        phone: { $regex: String(phone), $options: 'i' },
+        province: { $regex: String(province), $options: 'i' },
+        district: { $regex: String(district), $options: 'i' },
+        commune: { $regex: String(commune), $options: 'i' },
+        detail: { $regex: String(detail), $options: 'i' },
       },
     });
 
