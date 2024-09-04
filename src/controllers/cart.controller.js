@@ -103,7 +103,7 @@ export const addToCart = async (req, res) => {
 
       newCartItems.product = productId;
       newCartItems.quantity = parseInt(quantity);
-      newCartItems.itemPrice = quantity * existingProduct.discountedPrice;
+      newCartItems.itemPrice = existingProduct.price;
 
       await newCartItems.save();
       cart.cartItems.push(newCartItems);
