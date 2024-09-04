@@ -13,7 +13,7 @@ const router = express.Router();
 
 router.get('/:id', getAddressById);
 
-router.get('/', getUserAddress);
+router.get('/', auth, getUserAddress);
 
 router.post('/', auth, createAddress);
 
