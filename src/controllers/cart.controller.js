@@ -98,8 +98,6 @@ export const addToCart = async (req, res) => {
       item.product.equals(productId)
     );
 
-    console.log(productIndex);
-
     if (productIndex === -1) {
       const newCartItems = new CartDetail();
 
@@ -194,6 +192,45 @@ export const deleteFromCart = async (req, res) => {
 
     res.status(200).json({
       data: updatedCart,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const deleteAllFromCart = async (req, res) => {
+  try {
+    const { userId } = req.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Invalid credentials',
+      });
+    }
+
+    if (!isValidObjectId(userId)) {
+      return res.status(400).json({
+        error: 'Invalid id format',
+      });
+    }
+
+    const existingCart = await Cart.findOne({ userId });
+
+    if (!existingCart) {
+      return res.status(404).json({
+        error: 'This user has not created a cart yet',
+      });
+    }
+
+    // Delete all cart detail
+    await CartDetail.deleteMany({ _id: { $in: existingCart.cartItems } });
+
+    // Delete all cartItems in cart
+    await Cart.findByIdAndDelete(existingCart._id);
+
+    return res.status(200).json({
+      message: 'Cart deleted successfully',
       error: false,
     });
   } catch (error) {
