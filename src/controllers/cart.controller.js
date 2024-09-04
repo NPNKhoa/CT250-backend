@@ -1,4 +1,4 @@
-import { Cart } from '../models/cart.model.js';
+import { Cart, CartDetail } from '../models/cart.model.js';
 import { Product } from '../models/product.model.js';
 import { getTotalItems, getTotalPrice } from '../utils/getCartExtraInfo.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
@@ -14,7 +14,17 @@ export const getCartByUser = async (req, res) => {
       });
     }
 
-    const cart = await Cart.findOne({ userId });
+    const cart = await Cart.findOne({ userId })
+      .populate({
+        path: 'cartItems',
+        populate: {
+          path: 'product',
+          model: 'Product',
+          select: 'productName discountedPrice productImagePath -_id',
+        },
+        select: 'quantity itemPrice',
+      })
+      .populate('userId', 'fullname -_id');
 
     if (!cart) {
       return res.status(404).json({
@@ -78,7 +88,7 @@ export const addToCart = async (req, res) => {
       });
     }
 
-    let cart = await Cart.findOne({ userId });
+    let cart = await Cart.findOne({ userId }).populate('cartItems');
 
     if (!cart) {
       cart = new Cart({ userId, cartItems: [] });
@@ -88,18 +98,23 @@ export const addToCart = async (req, res) => {
       item.product.equals(productId)
     );
 
-    if (productIndex !== -1) {
-      cart.cartItems[productIndex].quantity += quantity;
-      cart.cartItems[productIndex].itemPrice +=
-        quantity * existingProduct.discountedPrice;
-    } else {
-      const cartItem = {
-        product: productId,
-        quantity,
-        itemPrice: quantity * existingProduct.discountedPrice,
-      };
+    if (productIndex === -1) {
+      const newCartItems = new CartDetail();
 
-      cart.cartItems.push(cartItem);
+      newCartItems.product = productId;
+      newCartItems.quantity = parseInt(quantity);
+      newCartItems.itemPrice = quantity * existingProduct.discountedPrice;
+
+      await newCartItems.save();
+      cart.cartItems.push(newCartItems);
+    } else {
+      const existingCartItem = await CartDetail.findOne({ product: productId });
+
+      existingCartItem.quantity += parseInt(quantity);
+      existingCartItem.itemPrice +=
+        existingProduct.discountedPrice * parseInt(quantity);
+
+      await existingCartItem.save();
     }
 
     const responseData = {
@@ -107,6 +122,8 @@ export const addToCart = async (req, res) => {
       totalPrice: getTotalPrice(cart.cartItems),
       totalCartItems: getTotalItems(cart.cartItems),
     };
+
+    // console.log(responseData);
 
     await cart.save();
 
@@ -152,7 +169,7 @@ export const deleteFromCart = async (req, res) => {
     }
 
     const deletedItemIndex = cartUser.cartItems.findIndex((item) =>
-      item.product.equals(productId)
+      item.equals(productId)
     );
 
     if (deletedItemIndex === -1) {
@@ -161,9 +178,9 @@ export const deleteFromCart = async (req, res) => {
       });
     }
 
-    cartUser.cartItems.splice(deletedItemIndex, 1);
+    await CartDetail.findByIdAndDelete(productId);
 
-    console.log(cartUser.cartItems);
+    cartUser.cartItems.splice(deletedItemIndex, 1);
 
     await cartUser.save();
 
@@ -175,6 +192,45 @@ export const deleteFromCart = async (req, res) => {
 
     res.status(200).json({
       data: updatedCart,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const deleteAllFromCart = async (req, res) => {
+  try {
+    const { userId } = req.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Invalid credentials',
+      });
+    }
+
+    if (!isValidObjectId(userId)) {
+      return res.status(400).json({
+        error: 'Invalid id format',
+      });
+    }
+
+    const existingCart = await Cart.findOne({ userId });
+
+    if (!existingCart) {
+      return res.status(404).json({
+        error: 'This user has not created a cart yet',
+      });
+    }
+
+    // Delete all cart detail
+    await CartDetail.deleteMany({ _id: { $in: existingCart.cartItems } });
+
+    // Delete all cartItems in cart
+    await Cart.findByIdAndDelete(existingCart._id);
+
+    return res.status(200).json({
+      message: 'Cart deleted successfully',
       error: false,
     });
   } catch (error) {
@@ -209,7 +265,7 @@ export const changeItemQuantity = async (req, res) => {
     const { productId, quantity } = req.body;
 
     const updatedItemIndex = existingCart.cartItems.findIndex((item) =>
-      item.product.equals(productId)
+      item.equals(productId)
     );
 
     if (updatedItemIndex === -1) {
@@ -220,8 +276,18 @@ export const changeItemQuantity = async (req, res) => {
 
     if (quantity === 0) {
       existingCart.cartItems.splice(updatedItemIndex, 1);
+
+      await CartDetail.findByIdAndDelete(productId);
     } else {
       existingCart.cartItems[updatedItemIndex].quantity = quantity;
+
+      await CartDetail.findByIdAndUpdate(
+        productId,
+        {
+          quantity,
+        },
+        { new: true, runValidators: true }
+      );
     }
 
     await existingCart.save();
