@@ -2,10 +2,21 @@ import { Product } from '../models/product.model.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 import logError from '../utils/logError.js';
 import { productValidation } from '../utils/validation.js';
+import mongoose from 'mongoose';
 
 export const getAllProducts = async (req, res) => {
   try {
-    const { productName = '', page = 1, limit = 10 } = req.query;
+    const {
+      productName = '',
+      productType = '',
+      brand = '',
+      minPrice = null,
+      maxPrice = null,
+      page = 1,
+      limit = 10
+    } = req.query;
+
+    const brandArray = brand ? brand.split(',') : [];
 
     const query = {};
 
@@ -13,25 +24,65 @@ export const getAllProducts = async (req, res) => {
       query.productName = { $regex: productName, $options: 'i' };
     }
 
-    const products = await Product.find(query)
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit))
-      .populate('productType', 'productTypeName -_id')
-      .populate('productBrand', 'brandName brandDesc -_id')
-      .populate(
-        'technicalSpecification.specificationName',
-        'specificationName -_id'
-      )
-      .populate('promotion', 'promotionName promotionExpiredDate -_id')
-      .populate('discount', 'discountPercent discountExpiredDate -_id');
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) {
+        query.price.$gte = parseFloat(minPrice);
+      }
+      if (maxPrice) {
+        query.price.$lte = parseFloat(maxPrice);
+      }
+    }
 
-    if (!Array.isArray(products) || products.length === 0) {
-      return res.status(404).json({
-        error: 'Products not found',
+    const pipeline = [
+      { $match: query },
+      {
+        $lookup: {
+          from: 'producttypes',
+          localField: 'productType',
+          foreignField: '_id',
+          as: 'productTypeDetails'
+        }
+      },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'productBrand',
+          foreignField: '_id',
+          as: 'brandDetails'
+        }
+      },
+      { $unwind: '$productTypeDetails' },
+      { $unwind: '$brandDetails' }
+    ];
+
+    if (productType) {
+      pipeline.push({
+        $match: { 'productTypeDetails.productTypeName': productType }
       });
     }
 
-    const totalDocs = await Product.countDocuments(query);
+    if (brandArray.length > 0) {
+      pipeline.push({
+        $match: { 'brandDetails.brandName': { $in: brandArray } }
+      });
+    }
+
+    const totalDocsPipeline = [...pipeline];
+    const totalDocsResult = await mongoose.connection.db.collection('products').aggregate(totalDocsPipeline).toArray();
+    const totalDocs = totalDocsResult.length;
+
+    pipeline.push(
+      { $skip: (page - 1) * limit },
+      { $limit: parseInt(limit) }
+    );
+
+    const products = await mongoose.connection.db.collection('products').aggregate(pipeline).toArray();
+
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(404).json({ error: 'Products not found' });
+    }
+
     const totalPages = Math.ceil(totalDocs / limit);
 
     res.status(200).json({
