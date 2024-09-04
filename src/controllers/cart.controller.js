@@ -20,7 +20,7 @@ export const getCartByUser = async (req, res) => {
         populate: {
           path: 'product',
           model: 'Product',
-          select: 'productName discountedPrice productImagePath -_id',
+          select: 'productName discountedPrice productImagePath',
         },
         select: 'quantity itemPrice',
       })
@@ -72,7 +72,7 @@ export const addToCart = async (req, res) => {
     }
 
     const existingProduct = await Product.findById(productId).populate(
-      'discount',
+      'discountedPrice',
       '-_id'
     );
 
