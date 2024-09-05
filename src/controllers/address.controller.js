@@ -80,12 +80,12 @@ export const createAddress = async (req, res) => {
     const existingUser = await User.findById(userId).populate({
       path: 'address',
       match: {
-        fullname: { $regex: String(fullname), $options: 'i' },
-        phone: { $regex: String(phone), $options: 'i' },
-        province: { $regex: String(province), $options: 'i' },
-        district: { $regex: String(district), $options: 'i' },
-        commune: { $regex: String(commune), $options: 'i' },
-        detail: { $regex: String(detail), $options: 'i' },
+        fullname: fullname && { $regex: fullname, $options: 'i' },
+        phone: phone && { $regex: phone, $options: 'i' },
+        province: province && { $regex: province, $options: 'i' },
+        district: district && { $regex: district, $options: 'i' },
+        commune: commune && { $regex: commune, $options: 'i' },
+        detail: detail && { $regex: detail, $options: 'i' },
       },
     });
 
