@@ -12,10 +12,17 @@ export const getUserAddress = async (req, res) => {
       });
     }
 
-    const data = await User.findById(userId).populate('address');
-    const address = data?.address;
+    const existingUser = await User.findById(userId).populate('address');
 
-    if (!Array.isArray || address.length === 0) {
+    if (!existingUser) {
+      return res.status(404).json({
+        error: 'User not found',
+      });
+    }
+
+    const address = existingUser.address;
+
+    if (!Array.isArray(address) || address.length === 0) {
       return res.status(404).json({
         error: 'Can not found address for this user',
       });
@@ -170,11 +177,9 @@ export const updateAddress = async (req, res) => {
       );
 
       if (!existingUser) {
-        return res
-          .status(404)
-          .json({
-            error: 'User not found or address does not belong to the user',
-          });
+        return res.status(404).json({
+          error: 'User not found or address does not belong to the user',
+        });
       }
     }
 
