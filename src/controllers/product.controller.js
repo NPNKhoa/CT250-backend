@@ -13,7 +13,9 @@ export const getAllProducts = async (req, res) => {
       minPrice = null,
       maxPrice = null,
       page = 1,
-      limit = 10
+      limit = 10,
+      isDesc = false,
+      sortBy = 'price',
     } = req.query;
 
     const brandArray = brand ? brand.split(',') : [];
@@ -41,43 +43,53 @@ export const getAllProducts = async (req, res) => {
           from: 'producttypes',
           localField: 'productType',
           foreignField: '_id',
-          as: 'productTypeDetails'
-        }
+          as: 'productTypeDetails',
+        },
       },
       {
         $lookup: {
           from: 'brands',
           localField: 'productBrand',
           foreignField: '_id',
-          as: 'brandDetails'
-        }
+          as: 'brandDetails',
+        },
       },
       { $unwind: '$productTypeDetails' },
-      { $unwind: '$brandDetails' }
+      { $unwind: '$brandDetails' },
     ];
 
     if (productType) {
       pipeline.push({
-        $match: { 'productTypeDetails.productTypeName': productType }
+        $match: { 'productTypeDetails.productTypeName': productType },
       });
     }
 
     if (brandArray.length > 0) {
       pipeline.push({
-        $match: { 'brandDetails.brandName': { $in: brandArray } }
+        $match: { 'brandDetails.brandName': { $in: brandArray } },
       });
     }
 
+    const sortDirection = isDesc === 'true' ? -1 : 1;
+    const sortStage = {
+      $sort: { [sortBy]: sortDirection },
+    };
+
+    pipeline.push(sortStage);
+
     const totalDocsPipeline = [...pipeline];
-    const totalDocsResult = await mongoose.connection.db.collection('products').aggregate(totalDocsPipeline).toArray();
+    const totalDocsResult = await mongoose.connection.db
+      .collection('products')
+      .aggregate(totalDocsPipeline)
+      .toArray();
     const totalDocs = totalDocsResult.length;
 
-    pipeline.push(
-      { $skip: (page - 1) * limit },
-      { $limit: parseInt(limit) }
-    );
+    pipeline.push({ $skip: (page - 1) * limit }, { $limit: parseInt(limit) });
 
-    const products = await mongoose.connection.db.collection('products').aggregate(pipeline).toArray();
+    const products = await mongoose.connection.db
+      .collection('products')
+      .aggregate(pipeline)
+      .toArray();
 
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(404).json({ error: 'Products not found' });
