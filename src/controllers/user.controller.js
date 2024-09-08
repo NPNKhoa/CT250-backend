@@ -177,6 +177,47 @@ export const updateUserInfo = async (req, res) => {
   }
 };
 
+export const changeAvatar = async (req, res) => {
+  try {
+    const { userId } = req.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Invalid credentials',
+      });
+    }
+
+    const avatarImagePath = req?.file?.path;
+
+    console.log(avatarImagePath);
+
+    if (!avatarImagePath) {
+      return res.status(400).json({
+        error: 'Missing file',
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { avatarImagePath },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        error: 'Not found user',
+      });
+    }
+
+    res.status(200).json({
+      data: updatedUser,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
 export const updatePassword = async (req, res) => {
   try {
     const { userId } = req.userId;
