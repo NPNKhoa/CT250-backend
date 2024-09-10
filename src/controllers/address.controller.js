@@ -178,8 +178,6 @@ export const deleteAddress = async (req, res) => {
     const { id: addressId } = req.params;
     const { userId } = req.userId;
 
-    console.log(addressId);
-
     if (!addressId || !isValidObjectId(addressId)) {
       return res.status(400).json({
         error: 'Invalid Id',
@@ -199,3 +197,33 @@ export const deleteAddress = async (req, res) => {
     logError(error, res);
   }
 };
+
+export const setAddressDefault = async (req, res) => {
+  try {
+    const { id: addressId } = req.params;
+    const { userId } = req.userId;
+
+    if (!addressId || !isValidObjectId(addressId)) {
+      return res.status(400).json({
+        error: 'Invalid Id',
+      });
+    }
+
+    const user = await User.findById(userId).populate('address');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await Address.updateMany(
+      { _id: { $in: user.address }, isDefault: true },
+      { $set: { isDefault: false } }
+    );
+
+    await Address.findByIdAndUpdate(addressId, { isDefault: true });
+
+    res.status(200).send({ message: 'Address set as default successfully' });
+  } catch (error) {
+    logError(error, res);
+  }
+}
