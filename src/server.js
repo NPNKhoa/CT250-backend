@@ -21,6 +21,7 @@ import cartRoute from './routes/cart.route.js';
 import addressRoute from './routes/address.route.js';
 import orderRoute from './routes/order.route.js';
 import paymentMethodRoute from './routes/paymentMethod.route.js';
+import orderStatusRoute from './routes/orderStatus.route.js';
 
 dotenv.config({ path: `${process.cwd()}/.env` });
 
@@ -59,6 +60,7 @@ app.use(`/api/${apiVersion}/users`, userRoute);
 app.use(`/api/${apiVersion}/cart`, cartRoute);
 app.use(`/api/${apiVersion}/address`, addressRoute);
 app.use(`/api/${apiVersion}/payment-methods`, paymentMethodRoute);
+app.use(`/api/${apiVersion}/order-status`, orderStatusRoute);
 app.use(`/api/${apiVersion}/order`, orderRoute);
 app.get(
   '/auth/google',
