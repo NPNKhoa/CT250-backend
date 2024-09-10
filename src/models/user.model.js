@@ -88,10 +88,6 @@ const userSchema = new mongoose.Schema(
         ref: 'Address',
       },
     ],
-    defaultAddress: {
-      type: mongoose.Types.ObjectId,
-      ref: 'Address',
-    },
     googleId: {
       type: String,
       default: null,
