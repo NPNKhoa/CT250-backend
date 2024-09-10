@@ -202,6 +202,7 @@ export const deleteAddress = async (req, res) => {
     );
 
     res.status(200).json({
+      data: { _id: addressId },
       message: 'Delete address successfully'
     });
   } catch (error) {
@@ -233,7 +234,10 @@ export const setAddressDefault = async (req, res) => {
 
     await Address.findByIdAndUpdate(addressId, { isDefault: true });
 
-    res.status(200).send({ message: 'Address set as default successfully' });
+    res.status(200).send({
+      data: { _id: addressId },
+      message: 'Address set as default successfully',
+    });
   } catch (error) {
     logError(error, res);
   }
