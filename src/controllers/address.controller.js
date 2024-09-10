@@ -133,6 +133,7 @@ export const createAddress = async (req, res) => {
 export const updateAddress = async (req, res) => {
   try {
     const { id: addressId } = req.params;
+    const { userId } = req.userId;
 
     if (!addressId || !isValidObjectId(addressId)) {
       return res.status(400).json({
@@ -151,6 +152,15 @@ export const updateAddress = async (req, res) => {
     const { fullname, phone, province, district, commune, detail, isDefault } =
       req.body;
 
+    const user = await User.findById(userId).populate('address');
+
+    if (isDefault) {
+      await Address.updateMany(
+        { _id: { $in: user.address }, isDefault: true },
+        { $set: { isDefault: false } }
+      );
+    }
+
     const updatedAddress = await Address.findByIdAndUpdate(
       addressId,
       {
@@ -160,6 +170,7 @@ export const updateAddress = async (req, res) => {
         district: district || existingAddress.district,
         commune: commune || existingAddress.commune,
         detail: detail || existingAddress.detail,
+        isDefault: isDefault,
       },
       { new: true, runValidators: true }
     );
