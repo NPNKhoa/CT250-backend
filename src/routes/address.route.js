@@ -17,8 +17,8 @@ router.get('/', auth, getUserAddress);
 
 router.post('/', auth, createAddress);
 
-router.put('/update-address/:id', updateAddress);
+router.put('/:id', updateAddress);
 
-router.delete('/address/:id', deleteAddress);
+router.delete('/:id', auth, deleteAddress);
 
 export default router;

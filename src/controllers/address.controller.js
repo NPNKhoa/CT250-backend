@@ -119,10 +119,6 @@ export const createAddress = async (req, res) => {
 
     existingUser.address.push(newAddress._id);
 
-    if (isDefault) {
-      existingUser.defaultAddress = newAddress._id;
-    }
-
     await existingUser.save();
 
     res.status(200).json({
@@ -168,21 +164,6 @@ export const updateAddress = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (isDefault) {
-      const existingUser = await User.findOneAndUpdate(
-        {
-          address: addressId,
-        },
-        { deleteAddress: addressId }
-      );
-
-      if (!existingUser) {
-        return res.status(404).json({
-          error: 'User not found or address does not belong to the user',
-        });
-      }
-    }
-
     res.status(200).json({
       data: updatedAddress,
       error: false,
@@ -195,6 +176,9 @@ export const updateAddress = async (req, res) => {
 export const deleteAddress = async (req, res) => {
   try {
     const { id: addressId } = req.params;
+    const { userId } = req.userId;
+
+    console.log(addressId);
 
     if (!addressId || !isValidObjectId(addressId)) {
       return res.status(400).json({
@@ -203,8 +187,14 @@ export const deleteAddress = async (req, res) => {
     }
 
     await Address.findByIdAndDelete(addressId);
+    await User.updateOne(
+      { _id: userId },
+      { $pull: { address: addressId } }
+    );
 
-    res.status(204);
+    res.status(200).json({
+      message: 'Delete address successfully'
+    });
   } catch (error) {
     logError(error, res);
   }
