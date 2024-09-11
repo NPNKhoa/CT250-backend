@@ -77,6 +77,15 @@ export const createAddress = async (req, res) => {
     const { fullname, phone, province, district, commune, detail, isDefault } =
       req.body;
 
+      const user = await User.findById(userId).populate('address');
+
+      if (isDefault) {
+        await Address.updateMany(
+          { _id: { $in: user.address }, isDefault: true },
+          { $set: { isDefault: false } }
+        );
+      }
+
     const existingUser = await User.findById(userId).populate({
       path: 'address',
       match: {
