@@ -6,6 +6,7 @@ import {
   getAddressById,
   getUserAddress,
   updateAddress,
+  setAddressDefault,
 } from '../controllers/address.controller.js';
 import { auth } from '../middlewares/authentication.js';
 
@@ -17,8 +18,10 @@ router.get('/', auth, getUserAddress);
 
 router.post('/', auth, createAddress);
 
-router.put('/update-address/:id', updateAddress);
+router.put('/:id', auth, updateAddress);
 
-router.delete('/address/:id', deleteAddress);
+router.put('/set-default/:id', auth, setAddressDefault);
+
+router.delete('/:id', auth, deleteAddress);
 
 export default router;

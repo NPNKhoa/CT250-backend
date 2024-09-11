@@ -119,10 +119,6 @@ export const createAddress = async (req, res) => {
 
     existingUser.address.push(newAddress._id);
 
-    if (isDefault) {
-      existingUser.defaultAddress = newAddress._id;
-    }
-
     await existingUser.save();
 
     res.status(200).json({
@@ -137,6 +133,7 @@ export const createAddress = async (req, res) => {
 export const updateAddress = async (req, res) => {
   try {
     const { id: addressId } = req.params;
+    const { userId } = req.userId;
 
     if (!addressId || !isValidObjectId(addressId)) {
       return res.status(400).json({
@@ -155,6 +152,15 @@ export const updateAddress = async (req, res) => {
     const { fullname, phone, province, district, commune, detail, isDefault } =
       req.body;
 
+    const user = await User.findById(userId).populate('address');
+
+    if (isDefault) {
+      await Address.updateMany(
+        { _id: { $in: user.address }, isDefault: true },
+        { $set: { isDefault: false } }
+      );
+    }
+
     const updatedAddress = await Address.findByIdAndUpdate(
       addressId,
       {
@@ -164,24 +170,10 @@ export const updateAddress = async (req, res) => {
         district: district || existingAddress.district,
         commune: commune || existingAddress.commune,
         detail: detail || existingAddress.detail,
+        isDefault: isDefault,
       },
       { new: true, runValidators: true }
     );
-
-    if (isDefault) {
-      const existingUser = await User.findOneAndUpdate(
-        {
-          address: addressId,
-        },
-        { deleteAddress: addressId }
-      );
-
-      if (!existingUser) {
-        return res.status(404).json({
-          error: 'User not found or address does not belong to the user',
-        });
-      }
-    }
 
     res.status(200).json({
       data: updatedAddress,
@@ -195,6 +187,7 @@ export const updateAddress = async (req, res) => {
 export const deleteAddress = async (req, res) => {
   try {
     const { id: addressId } = req.params;
+    const { userId } = req.userId;
 
     if (!addressId || !isValidObjectId(addressId)) {
       return res.status(400).json({
@@ -203,9 +196,49 @@ export const deleteAddress = async (req, res) => {
     }
 
     await Address.findByIdAndDelete(addressId);
+    await User.updateOne(
+      { _id: userId },
+      { $pull: { address: addressId } }
+    );
 
-    res.status(204);
+    res.status(200).json({
+      data: { _id: addressId },
+      message: 'Delete address successfully'
+    });
   } catch (error) {
     logError(error, res);
   }
 };
+
+export const setAddressDefault = async (req, res) => {
+  try {
+    const { id: addressId } = req.params;
+    const { userId } = req.userId;
+
+    if (!addressId || !isValidObjectId(addressId)) {
+      return res.status(400).json({
+        error: 'Invalid Id',
+      });
+    }
+
+    const user = await User.findById(userId).populate('address');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await Address.updateMany(
+      { _id: { $in: user.address }, isDefault: true },
+      { $set: { isDefault: false } }
+    );
+
+    await Address.findByIdAndUpdate(addressId, { isDefault: true });
+
+    res.status(200).send({
+      data: { _id: addressId },
+      message: 'Address set as default successfully',
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+}
