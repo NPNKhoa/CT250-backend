@@ -306,3 +306,48 @@ export const changeItemQuantity = async (req, res) => {
     logError(error, res);
   }
 };
+
+export const selectItem = async (req, res) => {
+  try {
+    const { userId } = req.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Invalid credentials',
+      });
+    }
+
+    if (!isValidObjectId(userId)) {
+      return res.status(400).json({
+        error: 'Invalid user id format',
+      });
+    }
+
+    const { productId } = req.body;
+
+    const cart = await Cart.findOne({ userId }).populate('cartItems');
+
+    if (!cart) {
+      return res.status(404).json({ error: 'Cart not found' });
+    }
+
+    const cartItem = cart.cartItems.filter(
+      (item) => productId === item.product.toString()
+    );
+
+    if (!cartItem) {
+      return res.status(404).json({ error: 'Product not found in cart' });
+    }
+
+    cartItem.isSelected = true;
+
+    await cart.save();
+
+    res.status(200).json({
+      data: cart,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
