@@ -5,6 +5,7 @@ import {
   deleteAllFromCart,
   deleteFromCart,
   getCartByUser,
+  selectItem,
 } from '../controllers/cart.controller.js';
 import { auth } from '../middlewares/authentication.js';
 
@@ -15,6 +16,8 @@ router.get('/', auth, getCartByUser);
 router.post('/add', auth, addToCart);
 
 router.put('/update-quantity', auth, changeItemQuantity);
+
+router.put('/select', auth, selectItem);
 
 router.delete('/all', auth, deleteAllFromCart);
 

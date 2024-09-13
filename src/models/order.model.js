@@ -33,6 +33,12 @@ const shippingMethodSchema = new mongoose.Schema(
     },
   },
   {
+    shippingMethodDesc: {
+      type: String,
+      required: true,
+    },
+  },
+  {
     timestamps: true,
   }
 );
@@ -51,10 +57,12 @@ const orderSchema = new mongoose.Schema({
   shippingAddress: {
     type: mongoose.Types.ObjectId,
     ref: 'Address',
+    required: true,
   },
   shippingMethod: {
     type: mongoose.Types.ObjectId,
     ref: 'ShippingMethod',
+    required: true,
   },
   shippingFee: {
     type: Number,
@@ -64,6 +72,7 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: {
     type: mongoose.Types.ObjectId,
     ref: 'PaymentMethod',
+    required: true,
   },
   orderDetail: [
     {
