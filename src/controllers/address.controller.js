@@ -77,6 +77,15 @@ export const createAddress = async (req, res) => {
     const { fullname, phone, province, district, commune, detail, isDefault } =
       req.body;
 
+      const user = await User.findById(userId).populate('address');
+
+      if (isDefault) {
+        await Address.updateMany(
+          { _id: { $in: user.address }, isDefault: true },
+          { $set: { isDefault: false } }
+        );
+      }
+
     const existingUser = await User.findById(userId).populate({
       path: 'address',
       match: {
@@ -133,6 +142,7 @@ export const createAddress = async (req, res) => {
 export const updateAddress = async (req, res) => {
   try {
     const { id: addressId } = req.params;
+    const { userId } = req.userId;
 
     if (!addressId || !isValidObjectId(addressId)) {
       return res.status(400).json({
@@ -151,6 +161,15 @@ export const updateAddress = async (req, res) => {
     const { fullname, phone, province, district, commune, detail, isDefault } =
       req.body;
 
+    const user = await User.findById(userId).populate('address');
+
+    if (isDefault) {
+      await Address.updateMany(
+        { _id: { $in: user.address }, isDefault: true },
+        { $set: { isDefault: false } }
+      );
+    }
+
     const updatedAddress = await Address.findByIdAndUpdate(
       addressId,
       {
@@ -160,6 +179,7 @@ export const updateAddress = async (req, res) => {
         district: district || existingAddress.district,
         commune: commune || existingAddress.commune,
         detail: detail || existingAddress.detail,
+        isDefault: isDefault,
       },
       { new: true, runValidators: true }
     );
@@ -191,6 +211,7 @@ export const deleteAddress = async (req, res) => {
     );
 
     res.status(200).json({
+      data: { _id: addressId },
       message: 'Delete address successfully'
     });
   } catch (error) {
@@ -222,7 +243,10 @@ export const setAddressDefault = async (req, res) => {
 
     await Address.findByIdAndUpdate(addressId, { isDefault: true });
 
-    res.status(200).send({ message: 'Address set as default successfully' });
+    res.status(200).send({
+      data: { _id: addressId },
+      message: 'Address set as default successfully',
+    });
   } catch (error) {
     logError(error, res);
   }

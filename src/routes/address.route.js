@@ -18,7 +18,7 @@ router.get('/', auth, getUserAddress);
 
 router.post('/', auth, createAddress);
 
-router.put('/:id', updateAddress);
+router.put('/:id', auth, updateAddress);
 
 router.put('/set-default/:id', auth, setAddressDefault);
 

@@ -221,35 +221,39 @@ export const refreshToken = async (req, res) => {
   try {
     const { refreshToken } = req.body;
 
-    if (!refreshToken) {
-      return res.status(401).json({
-        error: 'No token provided!',
-      });
-    }
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET,
+      async (error) => {
+        if (error) {
+          if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ error: 'Token expired!' });
+          } else if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ error: 'Invalid Token!' });
+          } else {
+            return res.status(401).json({ error: 'Authentication error!' });
+          }
+        }
 
-    const existingUser = await User.findOne({ refreshToken });
+        const existingUser = await User.findOne({ refreshToken });
 
-    if (!existingUser) {
-      return res.status(401).json({
-        error: 'Invalid token',
-      });
-    }
+        const token = generateToken({ userId: existingUser._id });
 
-    const token = generateToken({
-      userId: existingUser._id,
-    });
+        existingUser.refreshToken = token.refreshToken;
+        await existingUser.save();
 
-    existingUser.refreshToken = token.refreshToken;
-
-    await existingUser.save();
-
-    res.status(200).json({
-      accessToken: token.accessToken,
-      refreshToken: token.refreshToken,
-      error: false,
-    });
+        return res.status(200).json({
+          accessToken: token.accessToken,
+          refreshToken: token.refreshToken,
+          error: false,
+        });
+      }
+    );
   } catch (error) {
     logError(error, res);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 };
 
