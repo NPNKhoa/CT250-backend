@@ -31,11 +31,6 @@ const shippingMethodSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    shippingFee: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
   },
   {
     timestamps: true,
@@ -60,6 +55,11 @@ const orderSchema = new mongoose.Schema({
   shippingMethod: {
     type: mongoose.Types.ObjectId,
     ref: 'ShippingMethod',
+  },
+  shippingFee: {
+    type: Number,
+    required: true,
+    default: 0,
   },
   paymentMethod: {
     type: mongoose.Types.ObjectId,
