@@ -16,8 +16,6 @@ export const getAllTypes = async (req, res) => {
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
-    console.log(productTypes);
-
     if (!Array.isArray(productTypes) || productTypes.length === 0) {
       return res.status(404).json({
         error: 'Product types not found',
