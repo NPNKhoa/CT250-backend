@@ -10,6 +10,7 @@ import {
   validRoles,
 } from '../utils/validation.js';
 import generateToken from '../utils/generateToken.js';
+import { el } from 'date-fns/locale';
 
 export const addRole = async (req, res) => {
   try {
@@ -224,7 +225,7 @@ export const refreshToken = async (req, res) => {
     jwt.verify(
       refreshToken,
       process.env.REFRESH_TOKEN_SECRET,
-      async (error) => {
+      async (error, payload) => {
         if (error) {
           if (error.name === 'TokenExpiredError') {
             return res.status(401).json({ error: 'Token expired!' });
@@ -234,8 +235,9 @@ export const refreshToken = async (req, res) => {
             return res.status(401).json({ error: 'Authentication error!' });
           }
         }
-
-        const existingUser = await User.findOne({ refreshToken });
+        
+        const existingUser = await User.findById(payload.userId);
+        if (!existingUser) return res.status(404).json({ error: 'User not found!' });
 
         const token = generateToken({ userId: existingUser._id });
 
