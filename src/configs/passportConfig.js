@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 dotenv.config({ path: `${process.cwd()}/.env` });
 
 import { User, UserRole } from '../models/user.model.js';
-import generateToken from '../utils/generateToken.js';
 
 passport.use(
   new GoogleStrategy(
@@ -14,7 +13,7 @@ passport.use(
       callbackURL: '/auth/google/callback',
     },
     async (accessToken, refreshToken, profile, done) => {
-      // console.log(profile);
+      console.log(profile);
       try {
         let user = await User.findOne({ googleId: profile.id });
 
@@ -33,16 +32,6 @@ passport.use(
 
           await user.save();
         }
-
-        const { accessToken, refreshToken } = generateToken({
-          userId: user.id,
-        });
-
-        profile.accessToken = accessToken;
-        profile.refreshToken = refreshToken;
-
-        user.refreshToken = refreshToken;
-        await user.save();
 
         done(null, user);
       } catch (error) {
