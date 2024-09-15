@@ -58,6 +58,91 @@ export const getAllRoles = async (req, res) => {
   }
 };
 
+export const loginWithGoogle = async (req, res) => {
+  try {
+    const {
+      fullname,
+      email,
+      avatarImagePath,
+      role = 'customer',
+    } = req.body;
+
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        error: 'Invalid role!',
+      });
+    }
+
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      const { accessToken, refreshToken } = generateToken({
+        userId: existingUser._id,
+      });
+
+      existingUser.refreshToken = refreshToken;
+
+      await existingUser.save();
+      return res.status(201).json({
+        data: {
+          userId: existingUser._id,
+          accessToken,
+          refreshToken,
+        },
+        error: false,
+        message: 'Login successfully!',
+      });
+    }
+
+    const roleId = (await UserRole.findOne({ role }))._id;
+
+    if (!roleId) {
+      return res.status(404).json({
+        error: 'Wrong role!',
+      });
+    }
+
+    const newUser = await User.create({
+      fullname,
+      email,
+      avatarImagePath: avatarImagePath,
+      isGoogleLogin: true,
+      role: roleId,
+    });
+
+    if (!newUser) {
+      return res.status(500).json({
+        error: 'Failed to create user!',
+      });
+    }
+
+    const { accessToken, refreshToken } = generateToken({
+      userId: newUser._id,
+    });
+
+    newUser.refreshToken = refreshToken;
+
+    await newUser.save();
+
+    res.status(201).json({
+      data: {
+        userId: newUser._id,
+        accessToken,
+        refreshToken,
+      },
+      error: false,
+      message: 'User created successfully!',
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        error: 'Email already exists!',
+      });
+    }
+    logError(error, res);
+  }
+};
+
 export const signUp = async (req, res) => {
   try {
     const {
