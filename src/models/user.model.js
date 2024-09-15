@@ -59,12 +59,15 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return !this.googleId;
+      },
       minLength: 8,
     },
     phone: {
       type: String,
       required: true,
+      default: '',
     },
     gender: {
       type: String,

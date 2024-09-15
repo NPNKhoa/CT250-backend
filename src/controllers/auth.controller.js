@@ -1,16 +1,14 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
-import { Address, User, UserRole } from '../models/user.model.js';
+import { User, UserRole } from '../models/user.model.js';
 import logError from '../utils/logError.js';
 import {
   validateEmail,
   validatePhone,
-  validGenders,
   validRoles,
 } from '../utils/validation.js';
 import generateToken from '../utils/generateToken.js';
-import { el } from 'date-fns/locale';
 
 export const addRole = async (req, res) => {
   try {
@@ -235,9 +233,10 @@ export const refreshToken = async (req, res) => {
             return res.status(401).json({ error: 'Authentication error!' });
           }
         }
-        
+
         const existingUser = await User.findById(payload.userId);
-        if (!existingUser) return res.status(404).json({ error: 'User not found!' });
+        if (!existingUser)
+          return res.status(404).json({ error: 'User not found!' });
 
         const token = generateToken({ userId: existingUser._id });
 
