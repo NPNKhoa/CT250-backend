@@ -4,6 +4,7 @@ import logger from 'morgan';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import path from 'path';
+import session from 'express-session';
 
 import { connectDb } from './configs/dbConnection.js';
 import passport from './configs/passportConfig.js';
@@ -33,8 +34,9 @@ const app = express();
 const port = process.env.PORT || 3001;
 const apiVersion = process.env.API_VERSION || 'v1';
 const corsOptions = {
-  origin: '*',
+  origin: 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
 };
 
 app.use(cors(corsOptions));
@@ -42,9 +44,20 @@ app.use(bodyParser.json());
 app.use(express.json());
 app.use(logger('dev'));
 
+// Configure session middleware
+app.use(session({
+  secret: 'e99a991f57a7d3b909ff3e0a921b9c3508139de1149129091f801735fc0b4e7a4ff00653e5db1977ddf1366e2fea5d627f2278f388941c0102f9ddce1e0af590', // Replace with your secret key
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false } // Set to true if using HTTPS
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use('/uploads', express.static(path.join(path.dirname(''), 'uploads')));
 
-app.get('/check', (req, res) => {
+app.get('/check', (_, res) => {
   res.status(200).json({
     status: 'OK',
     message: 'Server is running',
@@ -72,11 +85,20 @@ app.get(
 );
 app.get(
   '/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/' })
-),
+  passport.authenticate('google', { failureRedirect: '/' }),
   (req, res) => {
-    res.redirect('/login');
-  };
+    req.session.refreshToken = req.user.refreshToken;
+    res.redirect('http://localhost:3000');
+  }
+);
+
+app.get('/get-tokens', (req, res) => {
+  const refreshToken = req.session.refreshToken;
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'No tokens found' });
+  }
+  res.json({refreshToken});
+});
 
 app.use('*', (_, res) => {
   res.status(404).json({
