@@ -20,22 +20,28 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    const existingCart = await Cart.findOne({ userId }).populate('cartItems');
-
-    if (!existingCart) {
-      return res.status(404).json({
-        error: 'Not found cart for this user',
-      });
-    }
-
-    if (existingCart.cartItems?.length === 0) {
-      return res.status(404).json({
-        error: 'This cart has no items yet',
-      });
-    }
-
-    const { shippingAddress, shippingMethod, shippingFee, paymentMethod } =
+    const { orderDetail, shippingAddress, shippingMethod, shippingFee, paymentMethod, totalPrice } =
       req.body;
+
+    const cart = await Cart.findOne({ userId }).populate('cartItems');
+
+    if (!cart) {
+      return res.status(404).json({ error: 'Cart not found' });
+    }
+
+    const updatedCartItems = cart.cartItems.filter(
+      (item) => !orderDetail.includes(item._id.toString())
+    );
+
+    cart.cartItems = updatedCartItems;
+    await cart.save();
+
+    // // Remove corresponding cartDetail entries
+    // await CartDetail.deleteMany({
+    //   userId,
+    //   product: { $in: orderDetailProductIds }
+    // });
+
 
     if (!shippingAddress || !shippingMethod || !shippingFee || !paymentMethod) {
       return res.status(400).json({
@@ -45,33 +51,16 @@ export const createOrder = async (req, res) => {
 
     const newOrder = new Order({
       user: userId,
-      shippingAddress,
-      shippingMethod,
-      shippingFee,
-      paymentMethod,
-      orderStatus,
-      orderDetail: [],
+      shippingAddress: shippingAddress,
+      shippingMethod: shippingMethod,
+      shippingFee: shippingFee,
+      paymentMethod: paymentMethod,
+      orderDetail: orderDetail,
+      totalPrice: totalPrice,
     });
+    await newOrder.save();
 
-    let totalPrice = 0;
-
-    existingCart.cartItems.forEach((item) => {
-      if (item.isSelected) {
-        newOrder.orderDetail.push(item._id);
-
-        totalPrice += item.itemPrice * item.quantity;
-      }
-    });
-
-    if (newOrder.orderDetail.length === 0) {
-      return res.status(400).json({ error: 'No items selected for the order' });
-    }
-
-    newOrder.totalPrice = totalPrice;
-
-    const savedOrder = await newOrder.save();
-
-    const populatedOrder = await Order.findById(savedOrder._id)
+    const populatedOrder = await Order.findById(newOrder._id)
       .populate('user', 'fullname')
       .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
@@ -87,3 +76,64 @@ export const createOrder = async (req, res) => {
     logError(error, res);
   }
 };
+
+export const getAllOrders = async (_, res) => {
+  try {
+    const orders = await Order.find()
+      .populate('user', 'fullname')
+      .populate('shippingAddress', '-isDefault -phone')
+      .populate('shippingMethod')
+      .populate('paymentMethod')
+      .populate('orderDetail', 'product quantity itemPrice')
+      .populate('orderStatus');
+
+    res.status(200).json({
+      data: orders,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+}
+
+export const getOrderByUser = async (req, res) => {
+  try {
+    const { userId } = req.userId;
+
+    if (!isValidObjectId(userId)) {
+      return res.status(400).json({
+        error: 'Invalid order id',
+      });
+    }
+
+        const order = await Order.find({ user: userId })
+      .populate('user', 'fullname')
+      .populate('shippingAddress', '-isDefault -phone')
+      .populate('shippingMethod')
+      .populate('paymentMethod')
+      .populate({
+        path: 'orderDetail',
+        populate: {
+          path: 'product',
+          select: 'productName productImagePath'
+        }
+      })
+      .populate({
+        path: 'orderStatus',
+        select: 'orderStatus'
+      });
+
+    if (!order) {
+      return res.status(404).json({
+        error: 'Order not found',
+      });
+    }
+
+    res.status(200).json({
+      data: order,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+}
