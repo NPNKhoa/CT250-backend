@@ -58,7 +58,7 @@ export const getAllRoles = async (req, res) => {
   }
 };
 
-export const loginWithGoogle = async (req, res) => {
+export const loginWithSocial = async (req, res) => {
   try {
     const {
       fullname,
@@ -106,7 +106,7 @@ export const loginWithGoogle = async (req, res) => {
       fullname,
       email,
       avatarImagePath: avatarImagePath,
-      isGoogleLogin: true,
+      isSocialLogin: true,
       role: roleId,
     });
 
