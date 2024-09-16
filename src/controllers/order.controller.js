@@ -3,6 +3,7 @@ import { isValidObjectId } from '../utils/isValidObjectId.js';
 
 import { Order } from '../models/order.model.js';
 import { Cart } from '../models/cart.model.js';
+import isSubArray from '../utils/isSubArray.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -20,28 +21,20 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    const { orderDetail, shippingAddress, shippingMethod, shippingFee, paymentMethod, totalPrice } =
-      req.body;
-
     const cart = await Cart.findOne({ userId }).populate('cartItems');
 
     if (!cart) {
       return res.status(404).json({ error: 'Cart not found' });
     }
 
-    const updatedCartItems = cart.cartItems.filter(
-      (item) => !orderDetail.includes(item._id.toString())
-    );
-
-    cart.cartItems = updatedCartItems;
-    await cart.save();
-
-    // // Remove corresponding cartDetail entries
-    // await CartDetail.deleteMany({
-    //   userId,
-    //   product: { $in: orderDetailProductIds }
-    // });
-
+    const {
+      orderDetail,
+      shippingAddress,
+      shippingMethod,
+      shippingFee,
+      paymentMethod,
+      totalPrice,
+    } = req.body;
 
     if (!shippingAddress || !shippingMethod || !shippingFee || !paymentMethod) {
       return res.status(400).json({
@@ -49,24 +42,50 @@ export const createOrder = async (req, res) => {
       });
     }
 
+    if (!Array.isArray(orderDetail) || orderDetail.length === 0) {
+      return res.status(400).json({
+        error: 'Can not create order without products',
+      });
+    }
+
+    if (
+      !isSubArray(
+        orderDetail,
+        cart.cartItems.map((item) => item._id.toString())
+      )
+    ) {
+      return res.status(400).json({
+        error: 'Some product is not in your cart!',
+      });
+    }
+
+    cart.cartItems = cart.cartItems.filter(
+      (item) => !orderDetail.includes(item._id.toString())
+    );
+
     const newOrder = new Order({
       user: userId,
-      shippingAddress: shippingAddress,
-      shippingMethod: shippingMethod,
-      shippingFee: shippingFee,
-      paymentMethod: paymentMethod,
-      orderDetail: orderDetail,
-      totalPrice: totalPrice,
+      shippingAddress,
+      shippingMethod,
+      shippingFee,
+      paymentMethod,
+      orderDetail,
+      totalPrice,
     });
-    await newOrder.save();
 
-    const populatedOrder = await Order.findById(newOrder._id)
-      .populate('user', 'fullname')
-      .populate('shippingAddress', '-isDefault -phone')
-      .populate('shippingMethod')
-      .populate('paymentMethod')
-      .populate('orderDetail', 'product quantity itemPrice')
-      .populate('orderStatus');
+    await Promise.all([cart.save(), newOrder.save()]);
+
+    const populatedOrder = await Order.findById(newOrder._id).populate([
+      { path: 'user', select: 'fullname -_id' },
+      {
+        path: 'shippingAddress',
+        select: '-isDefault -phone -_id -createdAt -updatedAt',
+      },
+      { path: 'shippingMethod' },
+      { path: 'paymentMethod' },
+      { path: 'orderDetail', select: 'product quantity itemPrice' },
+      { path: 'orderStatus' },
+    ]);
 
     res.status(201).json({
       data: populatedOrder,
@@ -94,7 +113,7 @@ export const getAllOrders = async (_, res) => {
   } catch (error) {
     logError(error, res);
   }
-}
+};
 
 export const getOrderByUser = async (req, res) => {
   try {
@@ -106,7 +125,7 @@ export const getOrderByUser = async (req, res) => {
       });
     }
 
-        const order = await Order.find({ user: userId })
+    const order = await Order.find({ user: userId })
       .populate('user', 'fullname')
       .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
@@ -115,12 +134,12 @@ export const getOrderByUser = async (req, res) => {
         path: 'orderDetail',
         populate: {
           path: 'product',
-          select: 'productName productImagePath'
-        }
+          select: 'productName productImagePath',
+        },
       })
       .populate({
         path: 'orderStatus',
-        select: 'orderStatus'
+        select: 'orderStatus',
       });
 
     if (!order) {
@@ -136,4 +155,4 @@ export const getOrderByUser = async (req, res) => {
   } catch (error) {
     logError(error, res);
   }
-}
+};
