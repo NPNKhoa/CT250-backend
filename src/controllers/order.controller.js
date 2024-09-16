@@ -33,7 +33,6 @@ export const createOrder = async (req, res) => {
       shippingMethod,
       shippingFee,
       paymentMethod,
-      totalPrice,
     } = req.body;
 
     if (!shippingAddress || !shippingMethod || !shippingFee || !paymentMethod) {
@@ -70,7 +69,6 @@ export const createOrder = async (req, res) => {
       shippingFee,
       paymentMethod,
       orderDetail,
-      totalPrice,
     });
 
     await Promise.all([cart.save(), newOrder.save()]);
@@ -83,9 +81,27 @@ export const createOrder = async (req, res) => {
       },
       { path: 'shippingMethod' },
       { path: 'paymentMethod' },
-      { path: 'orderDetail', select: 'product quantity itemPrice' },
+      {
+        path: 'orderDetail',
+        populate: {
+          path: 'product',
+          model: 'Product',
+          select: 'productName',
+        },
+        select: 'quantity itemPrice',
+      },
       { path: 'orderStatus' },
     ]);
+
+    const totalPrice = populatedOrder.orderDetail.reduce(
+      (acc, orderDetail) => acc + orderDetail.itemPrice * orderDetail.quantity,
+      0
+    );
+
+    populatedOrder.totalPrice = totalPrice;
+    newOrder.totalPrice = totalPrice;
+
+    await newOrder.save();
 
     res.status(201).json({
       data: populatedOrder,
@@ -96,18 +112,51 @@ export const createOrder = async (req, res) => {
   }
 };
 
-export const getAllOrders = async (_, res) => {
+export const getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find()
+    const { page = 1, limit = 10, orderStatus } = req.body; // orderStatus is an objectid
+    const query = {};
+
+    if (orderStatus && isValidObjectId(orderStatus)) {
+      query.orderStatus = orderStatus;
+    }
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.createdAt.$lte = new Date(endDate);
+      }
+    }
+
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+
+    const orders = await Order.find(query)
       .populate('user', 'fullname')
       .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
       .populate('paymentMethod')
       .populate('orderDetail', 'product quantity itemPrice')
-      .populate('orderStatus');
+      .populate('orderStatus')
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(parseInt(limitNumber));
+
+    // build a query string and enable filter functionality for order status
+
+    const totalDocs = await Order.countDocuments();
+    const totalPages = Math.ceil(totalDocs / limitNumber);
 
     res.status(200).json({
       data: orders,
+      meta: {
+        totalDocs,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
       error: false,
     });
   } catch (error) {
