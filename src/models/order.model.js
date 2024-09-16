@@ -88,6 +88,7 @@ const orderSchema = new mongoose.Schema({
   orderStatus: {
     type: mongoose.Types.ObjectId,
     ref: 'OrderStatus',
+    default: '66e0bf5b97d3d40c4f0fb70a',
   },
   deliveredDate: {
     type: Date,
