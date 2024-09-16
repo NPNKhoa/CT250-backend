@@ -7,7 +7,7 @@ import {
   logout,
   refreshToken,
   signUp,
-  loginWithGoogle,
+  loginWithSocial,
 } from '../controllers/auth.controller.js';
 
 import upload from '../configs/multerConfig.js';
@@ -19,7 +19,7 @@ router.post('/signup', upload.single('imageFile'), signUp);
 
 router.post('/login', login);
 
-router.post('/login-with-google', loginWithGoogle);
+router.post('/login-with-social', loginWithSocial);
 
 router.post('/refresh', refreshToken);
 
