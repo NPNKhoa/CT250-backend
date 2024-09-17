@@ -60,14 +60,14 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: function () {
-        return !this.isGoogleLogin;
+        return !this.isSocialLogin;
       },
       minLength: 8,
     },
     phone: {
       type: String,
       required: function () {
-        return !this.isGoogleLogin;
+        return !this.isSocialLogin;
       },
       default: '',
     },
@@ -93,7 +93,7 @@ const userSchema = new mongoose.Schema(
         ref: 'Address',
       },
     ],
-    isGoogleLogin: {
+    isSocialLogin: {
       type: Boolean,
       default: false,
     },
