@@ -167,6 +167,10 @@ export const getAllOrders = async (req, res) => {
 export const getOrderByUser = async (req, res) => {
   try {
     const { userId } = req.userId;
+    const { page = 1, limit = 5 } = req.body;
+
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
 
     if (!isValidObjectId(userId)) {
       return res.status(400).json({
@@ -189,7 +193,9 @@ export const getOrderByUser = async (req, res) => {
       .populate({
         path: 'orderStatus',
         select: 'orderStatus',
-      });
+      })
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
 
     if (!order) {
       return res.status(404).json({
@@ -197,8 +203,17 @@ export const getOrderByUser = async (req, res) => {
       });
     }
 
+    const totalDocs = await Order.find({ user: userId }).countDocuments;
+    const totalPages = Math.ceil(totalDocs / limitNumber);
+
     res.status(200).json({
       data: order,
+      meta: {
+        totalDocs,
+        totalPages,
+        currentPage: pageNumber,
+        limit: limitNumber,
+      },
       error: false,
     });
   } catch (error) {
