@@ -351,3 +351,81 @@ export const selectItem = async (req, res) => {
     logError(error, res);
   }
 };
+
+export const createCartDetail = async (req, res) => {
+  try {
+    const { userId } = req.userId;
+
+    if (!userId || !isValidObjectId(userId)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    const { productId, quantity } = req.body;
+
+    if (!productId || !isValidObjectId(productId)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    if (Number.isNaN(quantity) && quantity < 1) {
+      return res.status(400).json({
+        error: 'Quantity must be a number grater than 0',
+      });
+    }
+
+    const existingProduct = await Product.findById(productId);
+
+    if (!existingProduct) {
+      return res.status(404).json({
+        error: 'Not found product with this id',
+      });
+    }
+
+    const newCartDetail = await CartDetail.create({
+      product: productId,
+      quantity,
+      itemPrice: existingProduct.price * quantity,
+    });
+
+    res.status(201).json({
+      data: newCartDetail,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getCartDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || !isValidObjectId(id)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    const cartDetail = await CartDetail.findById(id).populate({
+      path: 'product',
+      model: 'Product',
+      select: 'productName productImagePath',
+    });
+
+    if (!cartDetail) {
+      return res.status(404).json({
+        error: 'Not found cart detail with this id',
+      });
+    }
+
+    res.status(200).json({
+      data: cartDetail,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
