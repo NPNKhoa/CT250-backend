@@ -409,7 +409,11 @@ export const getCartDetail = async (req, res) => {
       });
     }
 
-    const cartDetail = await CartDetail.findById(id);
+    const cartDetail = await CartDetail.findById(id).populate({
+      path: 'product',
+      model: 'Product',
+      select: 'productName productImagePath',
+    });
 
     if (!cartDetail) {
       return res.status(404).json({
