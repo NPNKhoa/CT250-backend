@@ -351,3 +351,50 @@ export const selectItem = async (req, res) => {
     logError(error, res);
   }
 };
+
+export const createCartDetail = async (req, res) => {
+  try {
+    const { userId } = req.userId;
+
+    if (!userId || !isValidObjectId(userId)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    const { productId, quantity } = req.body;
+
+    if (!productId || !isValidObjectId(productId)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    if (Number.isNaN(quantity) && quantity < 1) {
+      return res.status(400).json({
+        error: 'Quantity must be a number grater than 0',
+      });
+    }
+
+    const existingProduct = await Product.findById(productId);
+
+    if (!existingProduct) {
+      return res.status(404).json({
+        error: 'Not found product with this id',
+      });
+    }
+
+    const newCartDetail = await CartDetail.create({
+      product: productId,
+      quantity,
+      itemPrice: existingProduct.price * quantity,
+    });
+
+    res.status(201).json({
+      data: newCartDetail,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
