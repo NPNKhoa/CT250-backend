@@ -398,3 +398,30 @@ export const createCartDetail = async (req, res) => {
     logError(error, res);
   }
 };
+
+export const getCartDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || !isValidObjectId(id)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    const cartDetail = await CartDetail.findById(id);
+
+    if (!cartDetail) {
+      return res.status(404).json({
+        error: 'Not found cart detail with this id',
+      });
+    }
+
+    res.status(200).json({
+      data: cartDetail,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};

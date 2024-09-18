@@ -6,6 +6,7 @@ import {
   deleteAllFromCart,
   deleteFromCart,
   getCartByUser,
+  getCartDetail,
   selectItem,
 } from '../controllers/cart.controller.js';
 import { auth } from '../middlewares/authentication.js';
@@ -13,6 +14,8 @@ import { auth } from '../middlewares/authentication.js';
 const router = express.Router();
 
 router.get('/', auth, getCartByUser);
+
+router.get('/cart-detail/:id', getCartDetail);
 
 router.post('/add', auth, addToCart);
 
