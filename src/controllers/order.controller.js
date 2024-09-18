@@ -3,6 +3,7 @@ import { isValidObjectId } from '../utils/isValidObjectId.js';
 
 import { Order } from '../models/order.model.js';
 import { Cart } from '../models/cart.model.js';
+import { User, UserRole } from '../models/user.model.js';
 import isSubArray from '../utils/isSubArray.js';
 
 export const createOrder = async (req, res) => {
@@ -114,7 +115,15 @@ export const createOrder = async (req, res) => {
 
 export const getAllOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 10, orderStatus } = req.body; // orderStatus is an objectid
+    const {
+      page = 1,
+      limit = 10,
+      orderStatus, // orderStatus is an objectid.
+      startDate,
+      endDate,
+      userRole, // enum: ['staff', 'customer']
+    } = req.query;
+
     const query = {};
 
     if (orderStatus && isValidObjectId(orderStatus)) {
@@ -129,6 +138,26 @@ export const getAllOrders = async (req, res) => {
       if (endDate) {
         query.createdAt.$lte = new Date(endDate);
       }
+    }
+
+    if (userRole) {
+      if (userRole.toString().toLowerCase() === 'admin') {
+        return res.status(400).json({
+          error: 'Only accept customer and staff for filter condition',
+        });
+      }
+
+      const role = await UserRole.findOne({ role: userRole.toLowerCase() });
+
+      if (!role) {
+        return res.status(400).json({
+          error: 'Invalid role',
+        });
+      }
+
+      const usersWithRole = await User.find({ role: role._id }).select('_id');
+
+      query.user = { $in: usersWithRole.map((user) => user._id) };
     }
 
     const pageNumber = parseInt(page, 10);
@@ -146,7 +175,7 @@ export const getAllOrders = async (req, res) => {
 
     // build a query string and enable filter functionality for order status
 
-    const totalDocs = await Order.countDocuments();
+    const totalDocs = await Order.countDocuments(query);
     const totalPages = Math.ceil(totalDocs / limitNumber);
 
     res.status(200).json({
@@ -167,6 +196,10 @@ export const getAllOrders = async (req, res) => {
 export const getOrderByUser = async (req, res) => {
   try {
     const { userId } = req.userId;
+    const { page = 1, limit = 5 } = req.query;
+
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
 
     if (!isValidObjectId(userId)) {
       return res.status(400).json({
@@ -189,7 +222,9 @@ export const getOrderByUser = async (req, res) => {
       .populate({
         path: 'orderStatus',
         select: 'orderStatus',
-      });
+      })
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
 
     if (!order) {
       return res.status(404).json({
@@ -197,8 +232,17 @@ export const getOrderByUser = async (req, res) => {
       });
     }
 
+    const totalDocs = await Order.countDocuments({ user: userId });
+    const totalPages = Math.ceil(totalDocs / limitNumber);
+
     res.status(200).json({
       data: order,
+      meta: {
+        totalDocs,
+        totalPages,
+        currentPage: pageNumber,
+        limit: limitNumber,
+      },
       error: false,
     });
   } catch (error) {
