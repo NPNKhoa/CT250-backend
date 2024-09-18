@@ -2,9 +2,8 @@ import logError from '../utils/logError.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 
 import { Order } from '../models/order.model.js';
-import { Cart } from '../models/cart.model.js';
+import { Cart, CartDetail } from '../models/cart.model.js';
 import { User, UserRole } from '../models/user.model.js';
-import isSubArray from '../utils/isSubArray.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -48,12 +47,9 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    if (
-      !isSubArray(
-        orderDetail,
-        cart.cartItems.map((item) => item._id.toString())
-      )
-    ) {
+    const existingCartDetail = await CartDetail.findById(orderDetail);
+
+    if (!existingCartDetail) {
       return res.status(400).json({
         error: 'Some product is not in your cart!',
       });
