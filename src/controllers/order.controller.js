@@ -262,9 +262,17 @@ export const getOrderById = async (req, res) => {
       .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
       .populate('paymentMethod')
-      .populate('orderDetail', 'product quantity itemPrice')
-      .populate('orderStatus');
-
+      .populate({
+        path: 'orderDetail',
+        populate: {
+          path: 'product',
+          select: 'productName productImagePath',
+        },
+      })
+      .populate({
+        path: 'orderStatus',
+        select: 'orderStatus',
+      });
     if (!existingOrder) {
       return res.status(404).json({
         error: 'Order not found',
@@ -291,16 +299,22 @@ export const getOrderByPhoneNumber = async (req, res) => {
     }
 
     const existingOrders = await Order.find()
-      .populate({
-        path: 'shippingAddress',
-        match: { phone },
-      })
+      .populate('shippingAddress')
       .populate('user', 'fullname')
       .populate('shippingMethod')
       .populate('paymentMethod')
-      .populate('orderDetail', 'product quantity itemPrice')
-      .populate('orderStatus')
-      .exec();
+
+      .populate({
+        path: 'orderDetail',
+        populate: {
+          path: 'product',
+          select: 'productName productImagePath',
+        },
+      })
+      .populate({
+        path: 'orderStatus',
+        select: 'orderStatus',
+      });
 
     const filteredOrders = existingOrders.filter(
       (order) => order.shippingAddress !== null
