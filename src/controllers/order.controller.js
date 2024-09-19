@@ -257,7 +257,15 @@ export const getOrderById = async (req, res) => {
       });
     }
 
-    const existingOrder = await Order.findById(orderId);
+    const existingOrder = await Order.findById(orderId)
+      .populate('user', 'fullname')
+      .populate('shippingAddress', '-isDefault -phone')
+      .populate('shippingMethod')
+      .populate('paymentMethod')
+      .populate('orderDetail', 'product quantity itemPrice')
+      .populate('orderStatus')
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(parseInt(limitNumber));
 
     if (!existingOrder) {
       return res.status(404).json({
@@ -289,6 +297,13 @@ export const getOrderByPhoneNumber = async (req, res) => {
         path: 'shippingAddress',
         match: { phone },
       })
+      .populate('user', 'fullname')
+      .populate('shippingMethod')
+      .populate('paymentMethod')
+      .populate('orderDetail', 'product quantity itemPrice')
+      .populate('orderStatus')
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(parseInt(limitNumber))
       .exec();
 
     const filteredOrders = existingOrders.filter(
