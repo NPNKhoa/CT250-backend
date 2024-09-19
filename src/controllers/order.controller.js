@@ -4,6 +4,7 @@ import { isValidObjectId } from '../utils/isValidObjectId.js';
 import { Order } from '../models/order.model.js';
 import { Cart, CartDetail } from '../models/cart.model.js';
 import { User, UserRole } from '../models/user.model.js';
+import { validatePhone } from '../utils/validation.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -239,6 +240,64 @@ export const getOrderByUser = async (req, res) => {
         currentPage: pageNumber,
         limit: limitNumber,
       },
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getOrderById = async (req, res) => {
+  try {
+    const { id: orderId } = req.params;
+
+    if (!isValidObjectId(orderId)) {
+      return res.status(400).json({
+        error: 'Invalid Id format',
+      });
+    }
+
+    const existingOrder = await Order.findById(orderId);
+
+    if (!existingOrder) {
+      return res.status(404).json({
+        error: 'Order not found',
+      });
+    }
+
+    res.status(200).json({
+      data: existingOrder,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getOrderByPhoneNumber = async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!validatePhone(phone)) {
+      return res.status(400).json({
+        error: 'Invalid phone number format',
+      });
+    }
+
+    const existingOrders = await Order.find({
+      shippingAddress: {
+        phone,
+      },
+    });
+
+    if (Array.isArray(existingOrders) && existingOrders.length === 0) {
+      return res.status(404).json({
+        error: 'Not found orders with this phone',
+      });
+    }
+
+    res.status(200).json({
+      data: existingOrders,
       error: false,
     });
   } catch (error) {
