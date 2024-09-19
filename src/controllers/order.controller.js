@@ -258,11 +258,8 @@ export const getOrderById = async (req, res) => {
     }
 
     const existingOrder = await Order.findById(orderId)
-      .populate({
-        path: 'shippingAddress',
-        match: { phone },
-      })
       .populate('user', 'fullname')
+      .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
       .populate('paymentMethod')
       .populate({
@@ -276,7 +273,6 @@ export const getOrderById = async (req, res) => {
         path: 'orderStatus',
         select: 'orderStatus',
       });
-
     if (!existingOrder) {
       return res.status(404).json({
         error: 'Order not found',
@@ -307,6 +303,7 @@ export const getOrderByPhoneNumber = async (req, res) => {
       .populate('user', 'fullname')
       .populate('shippingMethod')
       .populate('paymentMethod')
+
       .populate({
         path: 'orderDetail',
         populate: {
