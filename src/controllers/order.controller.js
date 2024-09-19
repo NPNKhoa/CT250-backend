@@ -258,12 +258,25 @@ export const getOrderById = async (req, res) => {
     }
 
     const existingOrder = await Order.findById(orderId)
+      .populate({
+        path: 'shippingAddress',
+        match: { phone },
+      })
       .populate('user', 'fullname')
       .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
       .populate('paymentMethod')
-      .populate('orderDetail', 'product quantity itemPrice')
-      .populate('orderStatus');
+      .populate({
+        path: 'orderDetail',
+        populate: {
+          path: 'product',
+          select: 'productName productImagePath',
+        },
+      })
+      .populate({
+        path: 'orderStatus',
+        select: 'orderStatus',
+      });
 
     if (!existingOrder) {
       return res.status(404).json({
@@ -296,11 +309,20 @@ export const getOrderByPhoneNumber = async (req, res) => {
         match: { phone },
       })
       .populate('user', 'fullname')
+      .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
       .populate('paymentMethod')
-      .populate('orderDetail', 'product quantity itemPrice')
-      .populate('orderStatus')
-      .exec();
+      .populate({
+        path: 'orderDetail',
+        populate: {
+          path: 'product',
+          select: 'productName productImagePath',
+        },
+      })
+      .populate({
+        path: 'orderStatus',
+        select: 'orderStatus',
+      });
 
     const filteredOrders = existingOrders.filter(
       (order) => order.shippingAddress !== null
