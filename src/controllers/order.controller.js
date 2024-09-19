@@ -263,7 +263,6 @@ export const getOrderById = async (req, res) => {
         match: { phone },
       })
       .populate('user', 'fullname')
-      .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
       .populate('paymentMethod')
       .populate({
@@ -309,7 +308,6 @@ export const getOrderByPhoneNumber = async (req, res) => {
         match: { phone },
       })
       .populate('user', 'fullname')
-      .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
       .populate('paymentMethod')
       .populate({
