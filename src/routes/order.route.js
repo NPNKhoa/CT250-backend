@@ -4,6 +4,8 @@ import { auth } from '../middlewares/authentication.js';
 import {
   createOrder,
   getAllOrders,
+  getOrderById,
+  getOrderByPhoneNumber,
   getOrderByUser,
 } from '../controllers/order.controller.js';
 
@@ -11,12 +13,12 @@ const router = express.Router();
 
 router.get('/', getAllOrders);
 
+router.get('/by-phone', getOrderByPhoneNumber);
+
 router.get('/get-order-by-user', auth, getOrderByUser);
 
+router.get('/:id', getOrderById);
+
 router.post('/', auth, createOrder);
-
-// router.put('/:id', );
-
-// router.delete('/:id', );
 
 export default router;
