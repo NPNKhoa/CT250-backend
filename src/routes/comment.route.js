@@ -1,8 +1,13 @@
 import express from 'express';
-import { createComment } from '../controllers/comment.controller.js';
+import {
+  createComment,
+  getAllProductComment,
+} from '../controllers/comment.controller.js';
 import { auth } from '../middlewares/authentication.js';
 
 const router = express.Router();
+
+router.get('/by-product', getAllProductComment);
 
 router.post('/', auth, createComment);
 
