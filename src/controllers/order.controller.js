@@ -284,20 +284,25 @@ export const getOrderByPhoneNumber = async (req, res) => {
       });
     }
 
-    const existingOrders = await Order.find({
-      shippingAddress: {
-        phone,
-      },
-    });
+    const existingOrders = await Order.find()
+      .populate({
+        path: 'shippingAddress',
+        match: { phone },
+      })
+      .exec();
 
-    if (Array.isArray(existingOrders) && existingOrders.length === 0) {
+    const filteredOrders = existingOrders.filter(
+      (order) => order.shippingAddress !== null
+    );
+
+    if (filteredOrders.length === 0) {
       return res.status(404).json({
         error: 'Not found orders with this phone',
       });
     }
 
     res.status(200).json({
-      data: existingOrders,
+      data: filteredOrders,
       error: false,
     });
   } catch (error) {
