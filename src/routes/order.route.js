@@ -13,11 +13,11 @@ const router = express.Router();
 
 router.get('/', getAllOrders);
 
-router.get('/:id', getOrderById);
-
 router.get('/by-phone', getOrderByPhoneNumber);
 
 router.get('/get-order-by-user', auth, getOrderByUser);
+
+router.get('/:id', getOrderById);
 
 router.post('/', auth, createOrder);
 
