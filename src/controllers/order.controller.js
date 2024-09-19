@@ -303,10 +303,7 @@ export const getOrderByPhoneNumber = async (req, res) => {
     }
 
     const existingOrders = await Order.find()
-      .populate({
-        path: 'shippingAddress',
-        match: { phone },
-      })
+      .populate('shippingAddress')
       .populate('user', 'fullname')
       .populate('shippingMethod')
       .populate('paymentMethod')
