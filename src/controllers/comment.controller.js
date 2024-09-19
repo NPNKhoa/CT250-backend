@@ -65,3 +65,30 @@ export const createComment = async (req, res) => {
     logError(error, res);
   }
 };
+
+export const getAllProductComment = async (req, res) => {
+  try {
+    const { productId } = req.body;
+
+    if (!productId || !isValidObjectId(productId)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    const comments = await Comment.find({ product: productId });
+
+    if (Array.isArray(comments) && comments.length === 0) {
+      return res.status(404).json({
+        error: 'This product has not comments yet',
+      });
+    }
+
+    res.status(200).json({
+      data: comments,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
