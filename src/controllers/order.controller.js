@@ -263,9 +263,7 @@ export const getOrderById = async (req, res) => {
       .populate('shippingMethod')
       .populate('paymentMethod')
       .populate('orderDetail', 'product quantity itemPrice')
-      .populate('orderStatus')
-      .skip((pageNumber - 1) * limitNumber)
-      .limit(parseInt(limitNumber));
+      .populate('orderStatus');
 
     if (!existingOrder) {
       return res.status(404).json({
@@ -302,8 +300,6 @@ export const getOrderByPhoneNumber = async (req, res) => {
       .populate('paymentMethod')
       .populate('orderDetail', 'product quantity itemPrice')
       .populate('orderStatus')
-      .skip((pageNumber - 1) * limitNumber)
-      .limit(parseInt(limitNumber))
       .exec();
 
     const filteredOrders = existingOrders.filter(
