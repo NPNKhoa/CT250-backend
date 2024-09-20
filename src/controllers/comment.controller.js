@@ -68,7 +68,7 @@ export const createComment = async (req, res) => {
 
 export const getAllProductComment = async (req, res) => {
   try {
-    const { productId } = req.body;
+    const { productId } = req.query;
 
     if (!productId || !isValidObjectId(productId)) {
       return res.status(400).json({
@@ -76,7 +76,13 @@ export const getAllProductComment = async (req, res) => {
       });
     }
 
-    const comments = await Comment.find({ product: productId });
+    const comments = await Comment.find({ product: productId })
+      .select('-product')
+      .populate({
+        path: 'user',
+        model: 'User',
+        select: 'fullname avatarImagePath',
+      });
 
     if (Array.isArray(comments) && comments.length === 0) {
       return res.status(404).json({
