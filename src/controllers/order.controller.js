@@ -194,7 +194,9 @@ export const getAllOrders = async (req, res) => {
 export const getOrderByUser = async (req, res) => {
   try {
     const { userId } = req.userId;
-    const { page = 1, limit = 5 } = req.query;
+    const { page = 1, limit = 5, orderStatus } = req.query; // objectid
+
+    const query = {};
 
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
@@ -205,7 +207,19 @@ export const getOrderByUser = async (req, res) => {
       });
     }
 
-    const order = await Order.find({ user: userId })
+    query.user = userId;
+
+    if (orderStatus) {
+      if (!isValidObjectId(orderStatus)) {
+        return res.status(400).json({
+          error: 'Invalid order status id',
+        });
+      }
+
+      query.orderStatus = orderStatus;
+    }
+
+    const order = await Order.find(query)
       .populate('user', 'fullname')
       .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
