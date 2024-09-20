@@ -96,10 +96,11 @@ export const createOrder = async (req, res) => {
       0
     );
 
-    populatedOrder.totalPrice = totalPrice;
-    newOrder.totalPrice = totalPrice;
+    newOrder.totalPrice = totalPrice + newOrder.shippingFee;
 
     await newOrder.save();
+
+    populatedOrder.totalPrice = newOrder.totalPrice;
 
     res.status(201).json({
       data: populatedOrder,
