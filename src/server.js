@@ -25,6 +25,7 @@ import orderStatusRoute from './routes/orderStatus.route.js';
 import shippingMethodRoute from './routes/shippingMethod.route.js';
 import feedBackRoutes from './routes/feedback.route.js';
 import commentRoutes from './routes/comment.route.js';
+import service from './routes/service.route.js';
 
 dotenv.config({ path: `${process.cwd()}/.env` });
 
@@ -68,6 +69,7 @@ app.use(`/api/${apiVersion}/order`, orderRoute);
 app.use(`/api/${apiVersion}/shipping-method`, shippingMethodRoute);
 app.use(`/api/${apiVersion}/feedback`, feedBackRoutes);
 app.use(`/api/${apiVersion}/comments`, commentRoutes);
+app.use(`/api/${apiVersion}/service`, service);
 app.get(
   '/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
