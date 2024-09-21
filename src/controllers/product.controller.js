@@ -158,7 +158,19 @@ export const getProductById = async (req, res) => {
         'technicalSpecification.specificationName',
         'specificationName -_id'
       )
-      .populate('promotion', 'promotionName promotionExpiredDate -_id')
+      .populate({
+        path: 'promotion',
+        populate: [
+          {
+            path: 'productIds',
+            select: 'productName price',
+          },
+          {
+            path: 'serviceIds',
+            select: 'serviceName servicePrice -_id',
+          },
+        ],
+      })
       .populate('discount', 'discountPercent discountExpiredDate -_id');
 
     if (!product) {
