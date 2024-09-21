@@ -1,6 +1,7 @@
 import { Promotion } from '../models/product.model.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 import logError from '../utils/logError.js';
+import { parseISO, isFuture, isValid } from 'date-fns';
 
 export const getAllPromotions = async (req, res) => {
   try {
@@ -13,6 +14,8 @@ export const getAllPromotions = async (req, res) => {
     }
 
     const promotions = await Promotion.find(query)
+      .populate('productIds', 'productName price -_id')
+      .populate('serviceIds', 'serviceName servicePrice -_id')
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
@@ -43,6 +46,7 @@ export const getAllPromotions = async (req, res) => {
 export const getPromotionById = async (req, res) => {
   try {
     const { id: promotionId } = req.params;
+    console.log(promotionId);
 
     if (!promotionId || !isValidObjectId(promotionId)) {
       return res.status(400).json({
@@ -50,9 +54,11 @@ export const getPromotionById = async (req, res) => {
       });
     }
 
-    const promotion = await Promotion.findById(promotionId);
+    const promotion = await Promotion.findById(promotionId)
+      .populate('productIds', 'productName price -_id')
+      .populate('serviceIds', 'serviceName servicePrice -_id');
 
-    if (promotion) {
+    if (!promotion) {
       return res.status(404).json({
         error: 'Promotion not found',
       });
@@ -69,23 +75,53 @@ export const getPromotionById = async (req, res) => {
 
 export const addPromotion = async (req, res) => {
   try {
-    const { promotionName } = req.body;
+    const { promotionStartDate, promotionExpiredDate, productIds = [], serviceIds = [] } = req.body;
 
-    if (!promotionName) {
+    if (!promotionStartDate || !promotionExpiredDate) {
       return res.status(400).json({
-        error: 'Missing required field!',
+        error: 'Missing required field',
       });
     }
 
-    const existingPromotion = await Promotion.findOne({ promotionName });
+    const startDate = parseISO(promotionStartDate);
+
+    if (!isValid(startDate)) {
+      return res.status(400).json({
+        error: 'Invalid date format for promotionStartDate',
+      });
+    }
+
+    const expiredDate = parseISO(promotionExpiredDate);
+
+    if (!isValid(expiredDate)) {
+      return res.status(400).json({
+        error: 'Invalid date format for promotionExpiredDate',
+      });
+    }
+
+    if (!isFuture(expiredDate)) {
+      return res.status(400).json({
+        error: 'Promotion expiration date must be a future date',
+      });
+    }
+
+    const existingPromotion = await Promotion.findOne({
+      promotionStartDate: startDate,
+      promotionExpiredDate: expiredDate,
+    });
 
     if (existingPromotion) {
       return res.status(409).json({
-        error: 'Promotion is already exist',
+        error: 'This promotion is already exist!',
       });
     }
 
-    const newPromotion = await Promotion.create({ promotionName });
+    const newPromotion = await Promotion.create({
+      promotionStartDate: startDate,
+      promotionExpiredDate: expiredDate,
+      productIds,
+      serviceIds,
+    });
 
     res.status(201).json({
       data: newPromotion,

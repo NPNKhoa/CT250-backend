@@ -32,13 +32,40 @@ const ProductTypeSchema = new mongoose.Schema(
 
 const PromotionSchema = new mongoose.Schema(
   {
-    promotionName: {
-      type: String,
+    promotionStartDate: {
+      type: Date,
       required: true,
-      unique: true,
     },
     promotionExpiredDate: {
       type: Date,
+      required: true,
+    },
+    productIds: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: 'Product',
+      },
+    ],
+    serviceIds: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: 'Service',
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const ServiceSchema = new mongoose.Schema(
+  {
+    serviceName: {
+      type: String,
+      required: true,
+    },
+    servicePrice: {
+      type: Number,
       required: true,
     },
   },
@@ -51,6 +78,10 @@ const DiscountSchema = new mongoose.Schema(
   {
     discountPercent: {
       type: Number,
+      required: true,
+    },
+    discountStartDate: {
+      type: Date,
       required: true,
     },
     discountExpiredDate: {
@@ -150,5 +181,6 @@ const Promotion = mongoose.model('Promotion', PromotionSchema);
 const Discount = mongoose.model('Discount', DiscountSchema);
 const Specification = mongoose.model('Specification', SpecificationSchema);
 const Product = mongoose.model('Product', ProductSchema);
+const Service = mongoose.model('Service', ServiceSchema);
 
-export { Brand, ProductType, Promotion, Discount, Specification, Product };
+export { Brand, ProductType, Promotion, Discount, Specification, Product, Service };
