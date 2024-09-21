@@ -8,6 +8,8 @@ export const getAllProducts = async (req, res) => {
   try {
     const {
       searchString = '',
+      productType = '',
+      brand = '',
       minPrice = null,
       maxPrice = null,
       page = 1,
@@ -16,55 +18,59 @@ export const getAllProducts = async (req, res) => {
       sortBy = 'price',
     } = req.query;
 
-    const allProductTypes = await mongoose.connection.db
-      .collection('producttypes')
-      .find({})
-      .toArray();
-    const allBrands = await mongoose.connection.db
-      .collection('brands')
-      .find({})
-      .toArray();
+    const brandArray = brand ? brand.split(',') : [];
 
     const query = {};
 
-    const words = searchString.trim().split(' ');
+    if (searchString) {
+      const allProductTypes = await mongoose.connection.db
+        .collection('producttypes')
+        .find({})
+        .toArray();
+      const allBrands = await mongoose.connection.db
+        .collection('brands')
+        .find({})
+        .toArray();
 
-    const matchedProductTypes = [];
-    const matchedBrands = [];
-    const remainingWords = [];
+      const words = searchString.trim().split(' ');
 
-    words.forEach((word) => {
-      const lowerCaseWord = word.toLowerCase();
+      const matchedProductTypes = [];
+      const matchedBrands = [];
+      const remainingWords = [];
 
-      const matchedProductType = allProductTypes.find((type) =>
-        type.productTypeName.toLowerCase().includes(lowerCaseWord)
-      );
-      if (matchedProductType) {
-        matchedProductTypes.push(matchedProductType._id);
-        return;
+      words.forEach((word) => {
+        const lowerCaseWord = word.toLowerCase();
+
+        const matchedProductType = allProductTypes.find((type) =>
+          type.productTypeName.toLowerCase().includes(lowerCaseWord)
+        );
+        if (matchedProductType) {
+          matchedProductTypes.push(matchedProductType._id);
+          return;
+        }
+
+        const matchedBrand = allBrands.find((brand) =>
+          brand.brandName.toLowerCase().includes(lowerCaseWord)
+        );
+        if (matchedBrand) {
+          matchedBrands.push(matchedBrand._id);
+          return;
+        }
+
+        remainingWords.push(word);
+      });
+
+      if (remainingWords.length > 0) {
+        query.productName = { $regex: remainingWords.join(' '), $options: 'i' };
       }
 
-      const matchedBrand = allBrands.find((brand) =>
-        brand.brandName.toLowerCase().includes(lowerCaseWord)
-      );
-      if (matchedBrand) {
-        matchedBrands.push(matchedBrand._id);
-        return;
+      if (matchedProductTypes.length > 0) {
+        query.productType = { $in: matchedProductTypes };
       }
 
-      remainingWords.push(word);
-    });
-
-    if (remainingWords.length > 0) {
-      query.productName = { $regex: remainingWords.join(' '), $options: 'i' };
-    }
-
-    if (matchedProductTypes.length > 0) {
-      query.productType = { $in: matchedProductTypes };
-    }
-
-    if (matchedBrands.length > 0) {
-      query.productBrand = { $in: matchedBrands };
+      if (matchedBrands.length > 0) {
+        query.productBrand = { $in: matchedBrands };
+      }
     }
 
     if (minPrice || maxPrice) {
@@ -99,7 +105,20 @@ export const getAllProducts = async (req, res) => {
       { $unwind: '$brandDetails' },
     ];
 
+    if (productType) {
+      pipeline.push({
+        $match: { 'productTypeDetails.productTypeName': productType },
+      });
+    }
+
+    if (Array.isArray(brandArray) && brandArray.length > 0) {
+      pipeline.push({
+        $match: { 'brandDetails.brandName': { $in: brandArray } },
+      });
+    }
+
     const sortDirection = isDesc === 'true' ? -1 : 1;
+
     const sortStage = {
       $sort: { [sortBy]: sortDirection },
     };
@@ -111,6 +130,7 @@ export const getAllProducts = async (req, res) => {
       .collection('products')
       .aggregate(totalDocsPipeline)
       .toArray();
+
     const totalDocs = totalDocsResult.length;
 
     pipeline.push({ $skip: (page - 1) * limit }, { $limit: parseInt(limit) });
