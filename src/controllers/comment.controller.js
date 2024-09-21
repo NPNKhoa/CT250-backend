@@ -2,6 +2,7 @@ import { Order } from '../models/order.model.js';
 import Comment from '../models/comment.model.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 import logError from '../utils/logError.js';
+import { populate } from 'dotenv';
 
 export const createComment = async (req, res) => {
   try {
@@ -33,16 +34,14 @@ export const createComment = async (req, res) => {
       });
     }
 
-    const existingOrder = await Order.find({
+    const existingOrder = await Order.findOne({
       user: userId,
     }).populate({
       path: 'orderDetail',
-      match: { product: productId },
+      select: 'product -_id',
     });
 
-    console.log(existingOrder);
-
-    if (Array.isArray(existingOrder) && existingOrder.length === 0) {
+    if (!existingOrder || !existingOrder.orderDetail.some((item) => item.product.toString() === productId)) {
       return res.status(404).json({
         error: 'This user have not purchased this product yet!',
       });
