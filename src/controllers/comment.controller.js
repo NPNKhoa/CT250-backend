@@ -34,14 +34,18 @@ export const createComment = async (req, res) => {
       });
     }
 
-    const existingOrder = await Order.findOne({
+    const existingOrders = await Order.find({
       user: userId,
     }).populate({
       path: 'orderDetail',
-      select: 'product -_id',
+      match: { product: productId },
     });
 
-    if (!existingOrder || !existingOrder.orderDetail.some((item) => item.product.toString() === productId)) {
+    const hasPurchasedProduct = existingOrders.some(order => 
+      order.orderDetail.some(item => item.product.toString() === productId)
+    );
+
+    if (!hasPurchasedProduct) {
       return res.status(404).json({
         error: 'This user have not purchased this product yet!',
       });
