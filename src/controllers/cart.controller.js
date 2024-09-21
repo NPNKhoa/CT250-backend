@@ -384,11 +384,19 @@ export const createCartDetail = async (req, res) => {
       });
     }
 
+    const cart = await Cart.findOne({ userId });
+
     const newCartDetail = await CartDetail.create({
       product: productId,
       quantity,
       itemPrice: existingProduct.price * quantity,
     });
+
+    if (!cart) {
+      await Cart.create({
+        userId,
+      });
+    }
 
     res.status(201).json({
       data: newCartDetail,
