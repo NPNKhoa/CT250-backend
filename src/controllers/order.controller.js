@@ -248,7 +248,7 @@ export const getOrderByUser = async (req, res) => {
     const totalPages = Math.ceil(totalDocs / limitNumber);
 
     res.status(200).json({
-      data: order,
+      data: order.reverse(),
       meta: {
         totalDocs,
         totalPages,
