@@ -1,4 +1,4 @@
-import { PriceFilter } from '../models/systemConfig.model.js';
+import { PriceFilter, SystemConfig } from '../models/systemConfig.model.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 import logError from '../utils/logError.js';
 
@@ -72,6 +72,17 @@ export const createPriceFilter = async (req, res) => {
       fromPrice,
       toPrice: toPrice ? toPrice : Infinity,
     });
+
+    const systemConfig = await SystemConfig.findOne();
+
+    if (systemConfig) {
+      systemConfig.shopPriceFilter.push(newPriceFilter._id);
+      await systemConfig.save();
+    } else {
+      return res.status(500).json({
+        error: 'No SystemConfig found',
+      });
+    }
 
     res.status(201).json({
       data: newPriceFilter,

@@ -20,10 +20,12 @@ const systemConfigSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    bannerImgPath: {
-      type: String,
-      required: true,
-    },
+    bannerImgPath: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
     shopEmail: {
       type: String,
       required: true,
@@ -36,8 +38,13 @@ const systemConfigSchema = new mongoose.Schema(
       {
         type: mongoose.Types.ObjectId,
         ref: 'PriceFilter',
+        default: '',
       },
     ],
+    isChoose: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
