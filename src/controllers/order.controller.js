@@ -194,7 +194,7 @@ export const getAllOrders = async (req, res) => {
 export const getOrderByUser = async (req, res) => {
   try {
     const { userId } = req.userId;
-    const { page = 1, limit = 5, orderStatus } = req.query; // objectid
+    const { page = 1, limit = 5, orderStatus, isLatest } = req.query; // objectid
 
     const query = {};
 
@@ -247,8 +247,10 @@ export const getOrderByUser = async (req, res) => {
     const totalDocs = await Order.countDocuments({ user: userId });
     const totalPages = Math.ceil(totalDocs / limitNumber);
 
+    const responseOrder = isLatest === 'latest' ? order.reverse() : order;
+
     res.status(200).json({
-      data: order,
+      data: responseOrder,
       meta: {
         totalDocs,
         totalPages,

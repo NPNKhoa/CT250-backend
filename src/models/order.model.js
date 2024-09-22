@@ -13,17 +13,12 @@ const paymentMethodSchema = new mongoose.Schema(
   }
 );
 
-const orderStatusSchema = new mongoose.Schema(
-  {
-    orderStatus: {
-      type: String,
-      required: true,
-    },
+const orderStatusSchema = new mongoose.Schema({
+  orderStatus: {
+    type: String,
+    required: true,
   },
-  {
-    timestamps: true,
-  }
-);
+});
 
 const shippingMethodSchema = new mongoose.Schema(
   {
