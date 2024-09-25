@@ -4,6 +4,7 @@ import express from 'express';
 import {
   getTotalRevenue,
   getTotalRevenueByMonth,
+  getRevenueByYear,
   getTotalOrders,
   getTotalOrdersByMonth,
   getTotalUsers,
@@ -13,6 +14,7 @@ const router = express.Router();
 
 router.get('/totalrevenue', getTotalRevenue);
 router.get('/totalrevenuebymonth', getTotalRevenueByMonth);
+router.get('/totalrevenuebyyear', getRevenueByYear);
 
 router.get('/totalorders', getTotalOrders);
 router.get('/totalordersbymonth', getTotalOrdersByMonth);
