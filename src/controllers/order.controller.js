@@ -84,7 +84,11 @@ export const createOrder = async (req, res) => {
         populate: {
           path: 'product',
           model: 'Product',
-          select: 'productName',
+          select: 'productName discount',
+          populate: {
+            path: 'discount',
+            select: 'discountPercent discountExpiredDate',
+          },
         },
         select: 'quantity itemPrice',
       },
@@ -92,7 +96,11 @@ export const createOrder = async (req, res) => {
     ]);
 
     const totalPrice = populatedOrder.orderDetail.reduce(
-      (acc, orderDetail) => acc + orderDetail.itemPrice * orderDetail.quantity,
+      (acc, orderDetail) =>
+        acc +
+        orderDetail.itemPrice *
+          ((100 - orderDetail.product.discount.discountPercent) / 100) *
+          orderDetail.quantity,
       0
     );
 
@@ -283,7 +291,11 @@ export const getOrderById = async (req, res) => {
         path: 'orderDetail',
         populate: {
           path: 'product',
-          select: 'productName productImagePath',
+          select: 'productName discount productImagePath',
+          populate: {
+            path: 'discount',
+            select: 'discountPercent discountExpiredDate',
+          },
         },
       })
       .populate({
