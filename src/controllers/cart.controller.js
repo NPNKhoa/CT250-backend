@@ -20,7 +20,11 @@ export const getCartByUser = async (req, res) => {
         populate: {
           path: 'product',
           model: 'Product',
-          select: 'productName discountedPrice productImagePath',
+          select: 'productName discount productImagePath',
+          populate: {
+            path: 'discount',
+            select: 'discountPercent discountExpiredDate',
+          },
         },
         select: 'quantity itemPrice',
       })
@@ -420,7 +424,11 @@ export const getCartDetail = async (req, res) => {
     const cartDetail = await CartDetail.findById(id).populate({
       path: 'product',
       model: 'Product',
-      select: 'productName productImagePath',
+      select: 'productName discount productImagePath',
+      populate: {
+        path: 'discount',
+        select: 'discountPercent discountExpiredDate',
+      },
     });
 
     if (!cartDetail) {

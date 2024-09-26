@@ -101,8 +101,19 @@ export const getAllProducts = async (req, res) => {
           as: 'brandDetails',
         },
       },
+      {
+        $lookup: {
+          from: 'discounts',
+          localField: 'discount',
+          foreignField: '_id',
+          as: 'discountDetails',
+        },
+      },
       { $unwind: '$productTypeDetails' },
       { $unwind: '$brandDetails' },
+      {
+        $unwind: { path: '$discountDetails', preserveNullAndEmptyArrays: true },
+      },
     ];
 
     if (productType) {
