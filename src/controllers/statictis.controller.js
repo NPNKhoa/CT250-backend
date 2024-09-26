@@ -1,7 +1,7 @@
 import { Order } from '../models/order.model.js';
-import logError from '../utils/logError.js';
+import { Product } from '../models/product.model.js';
 import { User } from '../models/user.model.js';
-import { isValidObjectId } from '../utils/isValidObjectId.js';
+import logError from '../utils/logError.js';
 
 export const getTotalRevenue = async (req, res) => {
   try {
@@ -222,5 +222,104 @@ export const getRevenueByYear = async (req, res) => {
   } catch (error) {
     console.error('Lỗi khi lấy thống kê doanh thu:', error);
     res.status(500).json({ message: 'Có lỗi xảy ra', error });
+  }
+};
+
+export const getQuantityPerProductType = async (req, res) => {
+  try {
+    // Sử dụng aggregation để tính toán số lượng sản phẩm đã bán theo loại sản phẩm
+    const result = await Order.aggregate([
+      {
+        // Tách từng orderDetail thành các document riêng
+        $unwind: '$orderDetail',
+      },
+      {
+        // Lookup để lấy thông tin sản phẩm từ CartDetail -> Product
+        $lookup: {
+          from: 'cartdetails', // Tên collection của CartDetail
+          localField: 'orderDetail', // field để join từ Order
+          foreignField: '_id', // field từ CartDetail
+          as: 'cartDetail',
+        },
+      },
+      {
+        $unwind: '$cartDetail', // Mở rộng cartDetail (mảng) thành các document riêng
+      },
+      {
+        // Lookup để lấy thông tin sản phẩm từ Product
+        $lookup: {
+          from: 'products', // Tên collection của Product
+          localField: 'cartDetail.product', // product field từ CartDetail
+          foreignField: '_id', // _id từ Product
+          as: 'product',
+        },
+      },
+      {
+        $unwind: '$product', // Mở rộng product thành document riêng
+      },
+      {
+        // Lookup để lấy thông tin productType từ ProductType
+        $lookup: {
+          from: 'producttypes', // Tên collection của ProductType
+          localField: 'product.productType', // productType field từ Product
+          foreignField: '_id', // _id từ ProductType
+          as: 'productType',
+        },
+      },
+      {
+        $unwind: '$productType', // Mở rộng productType thành document riêng
+      },
+      {
+        // Nhóm theo productTypeName và tính tổng số lượng sản phẩm
+        $group: {
+          _id: '$productType.productTypeName', // Nhóm theo tên loại sản phẩm
+          totalSold: { $sum: '$cartDetail.quantity' }, // Tính tổng số lượng đã bán
+        },
+      },
+      {
+        // Tính tổng số lượng tất cả sản phẩm đã bán ra
+        $group: {
+          _id: null,
+          productTypes: {
+            $push: { productType: '$_id', totalSold: '$totalSold' },
+          }, // Lưu trữ các loại sản phẩm và số lượng
+          totalProductsSold: { $sum: '$totalSold' }, // Tính tổng sản phẩm đã bán
+        },
+      },
+      {
+        // Tính phần trăm và định dạng kết quả
+        $unwind: '$productTypes', // Mở rộng các loại sản phẩm
+      },
+      {
+        $addFields: {
+          percentage: {
+            $multiply: [
+              { $divide: ['$productTypes.totalSold', '$totalProductsSold'] },
+              100,
+            ],
+          }, // Tính phần trăm
+        },
+      },
+      {
+        // Project để định dạng kết quả cuối cùng
+        $project: {
+          _id: 0, // Ẩn _id
+          productType: '$productTypes.productType', // Loại sản phẩm
+          totalSold: '$productTypes.totalSold', // Số lượng sản phẩm đã bán
+          percentage: { $round: ['$percentage', 2] }, // Làm tròn phần trăm đến 2 chữ số
+        },
+      },
+    ]);
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({ message: 'Không có dữ liệu.' });
+    }
+
+    res.status(200).json({
+      data: result,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
   }
 };
