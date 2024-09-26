@@ -28,6 +28,7 @@ import commentRoutes from './routes/comment.route.js';
 import service from './routes/service.route.js';
 import systemConfigRoutes from './routes/systemConfig.route.js';
 import priceFilterRoutes from './routes/priceFilter.route.js';
+import statictis from './routes/statictis.route.js';
 
 dotenv.config({ path: `${process.cwd()}/.env` });
 
@@ -74,6 +75,7 @@ app.use(`/api/${apiVersion}/comments`, commentRoutes);
 app.use(`/api/${apiVersion}/service`, service);
 app.use(`/api/${apiVersion}/system-configurations`, systemConfigRoutes);
 app.use(`/api/${apiVersion}/price-filter`, priceFilterRoutes);
+app.use(`/api/${apiVersion}/stat`, statictis);
 app.get(
   '/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
