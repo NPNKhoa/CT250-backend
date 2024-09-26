@@ -227,7 +227,6 @@ export const getRevenueByYear = async (req, res) => {
 
 export const getQuantityPerProductType = async (req, res) => {
   try {
-    // Sử dụng aggregation để tính toán số lượng sản phẩm đã bán theo loại sản phẩm
     const result = await Order.aggregate([
       {
         // Tách từng orderDetail thành các document riêng
@@ -236,7 +235,7 @@ export const getQuantityPerProductType = async (req, res) => {
       {
         // Lookup để lấy thông tin sản phẩm từ CartDetail -> Product
         $lookup: {
-          from: 'cartdetails', // Tên collection của CartDetail
+          from: 'cartdetails',
           localField: 'orderDetail', // field để join từ Order
           foreignField: '_id', // field từ CartDetail
           as: 'cartDetail',
@@ -317,6 +316,81 @@ export const getQuantityPerProductType = async (req, res) => {
 
     res.status(200).json({
       data: result,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getLatestOrders = async (req, res) => {
+  try {
+    const {
+      orderStatus, // orderStatus is an objectid.
+      startDate,
+      endDate,
+      userRole, // enum: ['staff', 'customer']
+    } = req.query;
+
+    const query = {};
+
+    // Kiểm tra orderStatus
+    if (orderStatus && isValidObjectId(orderStatus)) {
+      query.orderStatus = orderStatus;
+    }
+
+    // Kiểm tra khoảng thời gian
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.createdAt.$lte = new Date(endDate);
+      }
+    }
+
+    // Kiểm tra userRole
+    if (userRole) {
+      if (userRole.toString().toLowerCase() === 'admin') {
+        return res.status(400).json({
+          error: 'Only accept customer and staff for filter condition',
+        });
+      }
+
+      const role = await UserRole.findOne({ role: userRole.toLowerCase() });
+
+      if (!role) {
+        return res.status(400).json({
+          error: 'Invalid role',
+        });
+      }
+
+      const usersWithRole = await User.find({ role: role._id }).select('_id');
+
+      query.user = { $in: usersWithRole.map((user) => user._id) };
+    }
+
+    // Tìm 10 đơn hàng gần nhất
+    const orders = await Order.find(query)
+      .populate('user', 'fullname')
+      .populate('shippingAddress', '-isDefault -phone')
+      .populate('shippingMethod')
+      .populate('paymentMethod')
+      .populate({
+        path: 'orderDetail',
+        populate: {
+          path: 'product',
+          select: 'productName productImagePath',
+        },
+      })
+      .populate('orderStatus')
+      .sort({ createdAt: -1 }) // Sắp xếp theo ngày tạo giảm dần
+      .limit(10); // Giới hạn số lượng đơn hàng trả về
+
+    // Trả về kết quả
+    res.status(200).json({
+      data: orders,
       error: false,
     });
   } catch (error) {
