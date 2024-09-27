@@ -10,6 +10,7 @@ import {
   getTotalUsers,
   getTotalUsersByMonth,
   getQuantityPerProductType,
+  getLatestOrders,
 } from '../controllers/statictis.controller.js';
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.get('/totalusers', getTotalUsers);
 router.get('/totalusersbymonth', getTotalUsersByMonth);
 
 router.get('/quantityperproducttype', getQuantityPerProductType);
+router.get('/lastedorders', getLatestOrders);
 
 export default router;
