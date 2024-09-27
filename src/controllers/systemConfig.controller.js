@@ -3,7 +3,7 @@ import logError from '../utils/logError.js';
 
 export const createConfig = async (req, res) => {
   try {
-    const { shopName, shopEmail, shopPhoneNumber } = req.body;
+    const { shopName, shopEmail, shopPhoneNumber, shopIntroduction } = req.body;
 
     const shopLogoImgPath = req?.files?.shopLogoImgPath?.[0]?.path;
 
@@ -25,6 +25,7 @@ export const createConfig = async (req, res) => {
       shopName,
       shopEmail,
       shopPhoneNumber,
+      shopIntroduction,
       shopLogoImgPath,
       bannerImgPath,
       isChoose: true,
@@ -62,7 +63,7 @@ export const getCurrentConfig = async (_, res) => {
 
 export const updateConfig = async (req, res) => {
   try {
-    const { shopName, shopEmail, shopPhoneNumber } = req.body;
+    const { shopName, shopEmail, shopPhoneNumber, shopIntroduction } = req.body;
 
     const shopLogoImgPath = req?.files?.shopLogoImgPath?.[0]?.path;
 
@@ -80,6 +81,7 @@ export const updateConfig = async (req, res) => {
       shopPhoneNumber: shopPhoneNumber || prevConfig.shopPhoneNumber,
       shopLogoImgPath: shopLogoImgPath || prevConfig.shopLogoImgPath,
       bannerImgPath: bannerImgPath || prevConfig.bannerImgPath,
+      shopIntroduction: shopIntroduction || prevConfig.shopIntroduction,
       isChoose: true,
     });
 

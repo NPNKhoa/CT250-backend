@@ -34,6 +34,10 @@ const systemConfigSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    shopIntroduction: {
+      type: String,
+      default: '',
+    },
     shopPriceFilter: [
       {
         type: mongoose.Types.ObjectId,
