@@ -380,7 +380,10 @@ export const createCartDetail = async (req, res) => {
       });
     }
 
-    const existingProduct = await Product.findById(productId);
+    const existingProduct = await Product.findById(productId).populate(
+      'discount',
+      'discountPercent discountExpiredDate -_id'
+    );
 
     if (!existingProduct) {
       return res.status(404).json({
@@ -388,12 +391,23 @@ export const createCartDetail = async (req, res) => {
       });
     }
 
+    const itemPrice = existingProduct.price;
+    // const currentDate = new Date();
+
+    // if (
+    //   existingProduct.discount &&
+    //   existingProduct.discount.discountExpiredDate > currentDate
+    // ) {
+    //   const discount = existingProduct.discount.discountPercent / 100;
+    //   itemPrice = itemPrice * (1 - discount); // Tính giá sau khi áp dụng chiết khấu
+    // }
+
     const cart = await Cart.findOne({ userId });
 
     const newCartDetail = await CartDetail.create({
       product: productId,
       quantity,
-      itemPrice: existingProduct.price * quantity,
+      itemPrice: itemPrice,
     });
 
     if (!cart) {
