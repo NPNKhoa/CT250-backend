@@ -230,14 +230,15 @@ export const addProduct = async (req, res) => {
         error: payload,
       });
     }
+    
+    // const productImagePath = req?.files?.map((file) => file.path);
+    payload.productImagePath = payload.productImagePath || (req.files ? req.files.map((file) => file.path) : []);
 
-    const productImagePath = req?.files?.map((file) => file.path);
-
-    console.log(productImagePath);
+    // console.log(productImagePath);
 
     const productInfo = {
       ...payload,
-      productImagePath: productImagePath ? productImagePath : [],
+      // productImagePath: productImagePath ? productImagePath : [],
     };
 
     console.log(productInfo);
