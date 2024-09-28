@@ -144,7 +144,9 @@ export const getAllProducts = async (req, res) => {
 
     const totalDocs = totalDocsResult.length;
 
-    pipeline.push({ $skip: (page - 1) * limit }, { $limit: parseInt(limit) });
+    if (parseInt(limit) !== -1) {
+      pipeline.push({ $skip: (page - 1) * limit }, { $limit: parseInt(limit) });
+    }
 
     const products = await mongoose.connection.db
       .collection('products')
@@ -155,7 +157,7 @@ export const getAllProducts = async (req, res) => {
       return res.status(404).json({ error: 'Products not found' });
     }
 
-    const totalPages = Math.ceil(totalDocs / limit);
+    const totalPages = parseInt(limit) === -1 ? 1 : Math.ceil(totalDocs / limit);
 
     res.status(200).json({
       data: products,
@@ -228,14 +230,15 @@ export const addProduct = async (req, res) => {
         error: payload,
       });
     }
+    
+    // const productImagePath = req?.files?.map((file) => file.path);
+    payload.productImagePath = payload.productImagePath || (req.files ? req.files.map((file) => file.path) : []);
 
-    const productImagePath = req?.files?.map((file) => file.path);
-
-    console.log(productImagePath);
+    // console.log(productImagePath);
 
     const productInfo = {
       ...payload,
-      productImagePath: productImagePath ? productImagePath : [],
+      // productImagePath: productImagePath ? productImagePath : [],
     };
 
     console.log(productInfo);

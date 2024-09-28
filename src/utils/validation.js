@@ -26,6 +26,7 @@ export const productValidation = async (productInfo) => {
     productName,
     productBrand,
     productType,
+    productImagePath,
     discount,
     promotion,
     technicalSpecification,
@@ -40,8 +41,8 @@ export const productValidation = async (productInfo) => {
     !productBrand ||
     !productType ||
     !countInStock ||
-    !price ||
-    !description
+    !price // ||
+    // !description
   ) {
     return {
       status: 400,
@@ -118,10 +119,10 @@ export const productValidation = async (productInfo) => {
         };
       }
 
-      technicalSpecs.push({
-        specificationName,
-        specificationDesc,
-      });
+      // technicalSpecs.push({
+      //   specificationName,
+      //   specificationDesc,
+      // });
     }
   }
 
@@ -138,10 +139,11 @@ export const productValidation = async (productInfo) => {
     productName,
     productBrand,
     productType,
+    productImagePath,
     discount,
     discountedPrice: newPrice,
     promotion,
-    technicalSpecification: technicalSpecs,
+    technicalSpecification,
     countInStock,
     price,
     description,

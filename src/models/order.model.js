@@ -38,64 +38,67 @@ const shippingMethodSchema = new mongoose.Schema(
   }
 );
 
-const orderSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  orderDate: {
-    type: Date,
-    required: true,
-    default: Date.now(),
-  },
-  shippingAddress: {
-    type: mongoose.Types.ObjectId,
-    ref: 'Address',
-    required: true,
-  },
-  shippingMethod: {
-    type: mongoose.Types.ObjectId,
-    ref: 'ShippingMethod',
-    required: true,
-  },
-  shippingFee: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
-  paymentMethod: {
-    type: mongoose.Types.ObjectId,
-    ref: 'PaymentMethod',
-    required: true,
-  },
-  orderDetail: [
-    {
+const orderSchema = new mongoose.Schema(
+  {
+    user: {
       type: mongoose.Types.ObjectId,
-      ref: 'CartDetail',
+      ref: 'User',
+      required: true,
     },
-  ],
-  paymentStatus: {
-    type: Boolean,
-    required: true,
-    default: false,
+    orderDate: {
+      type: Date,
+      required: true,
+      default: Date.now(),
+    },
+    shippingAddress: {
+      type: mongoose.Types.ObjectId,
+      ref: 'Address',
+      required: true,
+    },
+    shippingMethod: {
+      type: mongoose.Types.ObjectId,
+      ref: 'ShippingMethod',
+      required: true,
+    },
+    shippingFee: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    paymentMethod: {
+      type: mongoose.Types.ObjectId,
+      ref: 'PaymentMethod',
+      required: true,
+    },
+    orderDetail: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: 'CartDetail',
+      },
+    ],
+    paymentStatus: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+    orderStatus: {
+      type: mongoose.Types.ObjectId,
+      ref: 'OrderStatus',
+      default: '66e0bf5b97d3d40c4f0fb70a',
+    },
+    deliveredDate: {
+      type: Date,
+    },
+    paidDate: {
+      type: Date,
+    },
+    totalPrice: {
+      type: Number,
+      default: 0,
+    },
   },
-  orderStatus: {
-    type: mongoose.Types.ObjectId,
-    ref: 'OrderStatus',
-    default: '66e0bf5b97d3d40c4f0fb70a',
-  },
-  deliveredDate: {
-    type: Date,
-  },
-  paidDate: {
-    type: Date,
-  },
-  totalPrice: {
-    type: Number,
-    default: 0,
-  },
-});
+  { timestamps: true }
+);
 
 const PaymentMethod = mongoose.model('PaymentMethod', paymentMethodSchema);
 const OrderStatus = mongoose.model('OrderStatus', orderStatusSchema);

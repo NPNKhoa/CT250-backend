@@ -200,7 +200,6 @@ export const getOrderByUser = async (req, res) => {
           error: 'Invalid order status id',
         });
       }
-
       query.orderStatus = orderStatus;
     }
 
