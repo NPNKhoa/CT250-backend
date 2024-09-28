@@ -31,7 +31,6 @@ export const productValidation = async (productInfo) => {
     technicalSpecification,
     countInStock,
     price,
-    discountedPrice,
     description,
     avgStar = 0,
   } = productInfo;
@@ -130,7 +129,7 @@ export const productValidation = async (productInfo) => {
 
   const now = Date.now();
 
-  let newPrice = 0;
+  let newPrice = price;
   if (expiredDate >= now) {
     newPrice = price - price * (existingDiscount.discountPercent / 100);
   }
