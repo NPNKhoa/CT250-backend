@@ -5,7 +5,7 @@ import { parseISO, isFuture, isValid } from 'date-fns';
 
 export const getAllPromotions = async (req, res) => {
   try {
-    const { promotionName = '', page = 1, limit = 10 } = req.body;
+    const { promotionName = '', page = 1, limit = 10 } = req.query;
 
     const query = {};
 
@@ -13,11 +13,15 @@ export const getAllPromotions = async (req, res) => {
       query.promotionName = { $regex: promotionName, $options: 'i' };
     }
 
-    const promotions = await Promotion.find(query)
+    const promotionQuery = Promotion.find(query)
       .populate('productIds', 'productName price -_id')
-      .populate('serviceIds', 'serviceName servicePrice -_id')
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .populate('serviceIds', 'serviceName servicePrice -_id');
+
+    if (parseInt(limit) !== -1) {
+      promotionQuery.skip((page - 1) * limit).limit(parseInt(limit));
+    }
+
+    const promotions = await promotionQuery;
 
     if (!Array.isArray(promotions) || promotions.length === 0) {
       return res.status(404).json({
@@ -26,7 +30,7 @@ export const getAllPromotions = async (req, res) => {
     }
 
     const totalDocs = await Promotion.countDocuments(query);
-    const totalPages = Math.ceil(totalDocs / limit);
+    const totalPages = parseInt(limit) === -1 ? 1 : Math.ceil(totalDocs / limit);
 
     res.status(200).json({
       data: promotions,
