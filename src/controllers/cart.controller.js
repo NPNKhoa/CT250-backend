@@ -112,11 +112,10 @@ export const addToCart = async (req, res) => {
       await newCartItems.save();
       cart.cartItems.push(newCartItems);
     } else {
-      const existingCartItem = await CartDetail.findOne({ product: productId });
+      const existingCartItem = cart.cartItems[productIndex];
 
-      existingCartItem.quantity += parseInt(quantity);
-      existingCartItem.itemPrice +=
-        existingProduct.discountedPrice * parseInt(quantity);
+      existingCartItem.quantity += +quantity;
+      existingCartItem.itemPrice += existingProduct.discountedPrice * +quantity;
 
       await existingCartItem.save();
     }
