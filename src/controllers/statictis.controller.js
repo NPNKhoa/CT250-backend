@@ -68,6 +68,148 @@ export const getTotalRevenueByMonth = async (req, res) => {
   }
 };
 
+export const getRevenueByYear = async (req, res) => {
+  try {
+    const { year } = req.query;
+    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+
+    const defaultRevenueData = Array.from({ length: 12 }, (_, index) => ({
+      month: index + 1,
+      totalRevenue: 0,
+      paidRevenue: 0,
+      unpaidRevenue: 0,
+    }));
+
+    const revenueDataFromDB = await Order.aggregate([
+      {
+        $match: {
+          orderDate: {
+            $gte: new Date(`${currentYear}-01-01`),
+            $lte: new Date(`${currentYear}-12-31T23:59:59`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: '$orderDate' }, // Nhóm theo tháng
+          totalRevenue: { $sum: '$totalPrice' }, // Tổng doanh thu
+          paidRevenue: {
+            $sum: {
+              $cond: [{ $eq: ['$paymentStatus', true] }, '$totalPrice', 0],
+            },
+          },
+          unpaidRevenue: {
+            $sum: {
+              $cond: [{ $eq: ['$paymentStatus', false] }, '$totalPrice', 0],
+            },
+          },
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+      {
+        $project: {
+          month: '$_id',
+          totalRevenue: 1,
+          paidRevenue: 1,
+          unpaidRevenue: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    const revenueData = defaultRevenueData.map((defaultMonth) => {
+      const monthData = revenueDataFromDB.find(
+        (dbMonth) => dbMonth.month === defaultMonth.month
+      );
+      return monthData || defaultMonth; // Nếu không có dữ liệu từ DB, trả về giá trị mặc định
+    });
+
+    // Nhóm các loại doanh thu thành mảng riêng biệt
+    const totalRevenueData = revenueData.map((data) => data.totalRevenue);
+    const paidRevenueData = revenueData.map((data) => data.paidRevenue);
+    const unpaidRevenueData = revenueData.map((data) => data.unpaidRevenue);
+
+    res.status(200).json({
+      message: `Thống kê doanh thu năm ${currentYear}`,
+      revenueData: {
+        totalRevenueData,
+        paidRevenueData,
+        unpaidRevenueData,
+      },
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy thống kê doanh thu:', error);
+    res.status(500).json({ message: 'Có lỗi xảy ra', error });
+  }
+};
+
+export const getRevenueForAllYears = async (req, res) => {
+  try {
+    // Lấy danh sách tất cả các năm có trong collection `orders`
+    const years = await Order.distinct('orderDate').then((dates) => [
+      ...new Set(dates.map((date) => new Date(date).getFullYear())),
+    ]);
+
+    const revenueResults = [];
+
+    // Lặp qua từng năm và tính doanh thu tổng thể
+    for (const year of years) {
+      const revenueDataFromDB = await Order.aggregate([
+        {
+          $match: {
+            orderDate: {
+              $gte: new Date(`${year}-01-01`),
+              $lte: new Date(`${year}-12-31T23:59:59`),
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null, // Không nhóm theo bất kỳ trường nào để tính tổng
+            totalRevenue: { $sum: '$totalPrice' },
+            paidRevenue: {
+              $sum: {
+                $cond: [{ $eq: ['$paymentStatus', true] }, '$totalPrice', 0],
+              },
+            },
+            unpaidRevenue: {
+              $sum: {
+                $cond: [{ $eq: ['$paymentStatus', false] }, '$totalPrice', 0],
+              },
+            },
+          },
+        },
+      ]);
+
+      // Nếu không có đơn hàng nào cho năm đó, khởi tạo doanh thu bằng 0
+      const totalRevenue =
+        revenueDataFromDB.length > 0 ? revenueDataFromDB[0].totalRevenue : 0;
+      const paidRevenue =
+        revenueDataFromDB.length > 0 ? revenueDataFromDB[0].paidRevenue : 0;
+      const unpaidRevenue =
+        revenueDataFromDB.length > 0 ? revenueDataFromDB[0].unpaidRevenue : 0;
+
+      // Lưu kết quả cho từng năm
+      revenueResults.push({
+        year,
+        totalRevenue,
+        paidRevenue,
+        unpaidRevenue,
+      });
+    }
+
+    res.status(200).json({
+      message: 'Thống kê doanh thu tổng thể theo năm thành công.',
+      revenueResults,
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy thống kê doanh thu:', error);
+    res.status(500).json({ message: 'Có lỗi xảy ra', error });
+  }
+};
+
 export const getTotalOrders = async (req, res) => {
   try {
     const totalOrders = await Order.countDocuments({});
@@ -145,83 +287,6 @@ export const getTotalUsersByMonth = async (req, res) => {
     });
   } catch (error) {
     logError(error, res);
-  }
-};
-
-export const getRevenueByYear = async (req, res) => {
-  try {
-    const { year } = req.query;
-    const currentYear = year ? parseInt(year) : new Date().getFullYear();
-
-    const defaultRevenueData = Array.from({ length: 12 }, (_, index) => ({
-      month: index + 1,
-      totalRevenue: 0,
-      paidRevenue: 0,
-      unpaidRevenue: 0,
-    }));
-
-    const revenueDataFromDB = await Order.aggregate([
-      {
-        $match: {
-          orderDate: {
-            $gte: new Date(`${currentYear}-01-01`),
-            $lte: new Date(`${currentYear}-12-31T23:59:59`),
-          },
-        },
-      },
-      {
-        $group: {
-          _id: { $month: '$orderDate' }, // Nhóm theo tháng
-          totalRevenue: { $sum: '$totalPrice' }, // Tổng doanh thu
-          paidRevenue: {
-            $sum: {
-              $cond: [{ $eq: ['$paymentStatus', true] }, '$totalPrice', 0],
-            },
-          },
-          unpaidRevenue: {
-            $sum: {
-              $cond: [{ $eq: ['$paymentStatus', false] }, '$totalPrice', 0],
-            },
-          },
-        },
-      },
-      {
-        $sort: { _id: 1 },
-      },
-      {
-        $project: {
-          month: '$_id',
-          totalRevenue: 1,
-          paidRevenue: 1,
-          unpaidRevenue: 1,
-          _id: 0,
-        },
-      },
-    ]);
-
-    const revenueData = defaultRevenueData.map((defaultMonth) => {
-      const monthData = revenueDataFromDB.find(
-        (dbMonth) => dbMonth.month === defaultMonth.month
-      );
-      return monthData || defaultMonth; // Nếu không có dữ liệu từ DB, trả về giá trị mặc định
-    });
-
-    // Nhóm các loại doanh thu thành mảng riêng biệt
-    const totalRevenueData = revenueData.map((data) => data.totalRevenue);
-    const paidRevenueData = revenueData.map((data) => data.paidRevenue);
-    const unpaidRevenueData = revenueData.map((data) => data.unpaidRevenue);
-
-    res.status(200).json({
-      message: `Thống kê doanh thu năm ${currentYear}`,
-      revenueData: {
-        totalRevenueData,
-        paidRevenueData,
-        unpaidRevenueData,
-      },
-    });
-  } catch (error) {
-    console.error('Lỗi khi lấy thống kê doanh thu:', error);
-    res.status(500).json({ message: 'Có lỗi xảy ra', error });
   }
 };
 
