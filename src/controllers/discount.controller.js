@@ -74,14 +74,20 @@ export const getDiscountById = async (req, res) => {
 
 export const addDiscount = async (req, res) => {
   try {
-    const { discountPercent, discountExpiredDate } = req.body;
+    const { discountPercent, discountExpiredDate, discountStartDate } =
+      req.body;
 
-    if (!discountPercent === null || !discountExpiredDate) {
+    if (
+      discountPercent === null ||
+      discountExpiredDate === null ||
+      discountStartDate === null
+    ) {
       return res.status(400).json({
         error: 'Missing required fields',
       });
     }
 
+    // Kiểm tra kiểu dữ liệu và giá trị của discountPercent
     if (
       typeof discountPercent !== 'number' ||
       discountPercent <= 0 ||
@@ -92,11 +98,19 @@ export const addDiscount = async (req, res) => {
       });
     }
 
+    // Phân tích các ngày và kiểm tra tính hợp lệ
     const expiredDate = parseISO(discountExpiredDate);
+    const startDate = parseISO(discountStartDate);
 
     if (!isValid(expiredDate)) {
       return res.status(400).json({
         error: 'Invalid date format for discountExpiredDate',
+      });
+    }
+
+    if (!isValid(startDate)) {
+      return res.status(400).json({
+        error: 'Invalid date format for discountStartDate',
       });
     }
 
@@ -106,19 +120,29 @@ export const addDiscount = async (req, res) => {
       });
     }
 
+    if (!isFuture(startDate)) {
+      return res.status(400).json({
+        error: 'Discount start date must be a future date',
+      });
+    }
+
+    // Kiểm tra xem discount đã tồn tại chưa
     const existingDiscount = await Discount.findOne({
       discountPercent,
       discountExpiredDate: expiredDate,
+      discountStartDate: startDate,
     });
 
     if (existingDiscount) {
       return res.status(409).json({
-        error: 'This discount is already exist',
+        error: 'This discount already exists',
       });
     }
 
+    // Tạo mới discount
     const newDiscount = await Discount.create({
       discountPercent,
+      discountStartDate: startDate,
       discountExpiredDate: expiredDate,
     });
 
