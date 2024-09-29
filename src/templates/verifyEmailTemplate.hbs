@@ -1,0 +1,39 @@
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Email Xác Thực</title>
+    <style>
+      body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin:
+      0; padding: 20px; } .email-container { max-width: 600px; margin: 0 auto;
+      background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow:
+      0px 0px 10px rgba(0, 0, 0, 0.1); } .email-header { text-align: center;
+      background-color: #EA580C; color: white; padding: 10px 0;
+      border-top-left-radius: 8px; border-top-right-radius: 8px; } .email-body {
+      padding: 20px; text-align: center; } .email-body h1 { color: #333; }
+      .email-body p { font-size: 16px; color: #555; } .verify-button { display:
+      inline-block; padding: 15px 25px; background-color: #EA580C; color: white
+      !important; text-decoration: none; border-radius: 5px; font-size: 18px;
+      margin-top: 20px; } .verify-button:hover { background-color: #ac3a00; }
+      .email-footer { padding: 10px; text-align: center; font-size: 12px; color:
+      #777; border-top: 1px solid #e4e4e4; }
+    </style>
+  </head>
+  <body>
+    <div class='email-container'>
+      <div class='email-header'>
+        <h2>Chào mừng đến với {{shopName}}</h2>
+      </div>
+      <div class='email-body'>
+        <h1>Xác thực Email của bạn</h1>
+        <p>Cảm ơn bạn đã đăng ký tài khoản tại {{shopName}}.</p>
+        <p>Để hoàn tất việc đăng ký, vui lòng xác thực địa chỉ email của bạn
+          bằng cách nhấn vào nút dưới đây:</p>
+        <a href='{{verificationLink}}' class='verify-button'>Xác Thực Email</a>
+      </div>
+      <div class='email-footer'>
+        <p>Nếu bạn không tạo tài khoản, vui lòng bỏ qua email này.</p>
+      </div>
+    </div>
+  </body>
+</html>
