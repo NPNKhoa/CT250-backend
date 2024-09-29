@@ -1,10 +1,17 @@
+import QueryString from 'qs';
+
 import logError from '../utils/logError.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 
 import { Order } from '../models/order.model.js';
-import { Cart, CartDetail } from '../models/cart.model.js';
 import { User, UserRole } from '../models/user.model.js';
 import { validatePhone } from '../utils/validation.js';
+import createHmacSignature from '../utils/createHmacSignature.js';
+import { createOrderService } from '../services/order.service.js';
+import {
+  generatePaymentUrl,
+  handlePaymentReturn,
+} from '../services/payment.service.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -20,12 +27,6 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({
         error: 'Invalid user id',
       });
-    }
-
-    const cart = await Cart.findOne({ userId }).populate('cartItems');
-
-    if (!cart) {
-      return res.status(404).json({ error: 'Cart not found' });
     }
 
     const {
@@ -48,71 +49,47 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    const existingCartDetail = await CartDetail.findById(orderDetail);
-
-    if (!existingCartDetail) {
-      return res.status(400).json({
-        error: 'Some product is not in your cart!',
-      });
-    }
-
-    cart.cartItems = cart.cartItems.filter(
-      (item) => !orderDetail.includes(item._id.toString())
-    );
-
-    const newOrder = new Order({
-      user: userId,
+    const createdOrder = await createOrderService({
+      userId,
+      orderDetail,
       shippingAddress,
       shippingMethod,
       shippingFee,
       paymentMethod,
-      orderDetail,
     });
 
-    await Promise.all([cart.save(), newOrder.save()]);
+    if (createdOrder.data === null) {
+      return res.status(createdOrder.status).json({
+        error: createdOrder.error,
+      });
+    }
 
-    const populatedOrder = await Order.findById(newOrder._id).populate([
-      { path: 'user', select: 'fullname -_id' },
-      {
-        path: 'shippingAddress',
-        select: '-isDefault -phone -_id -createdAt -updatedAt',
-      },
-      { path: 'shippingMethod' },
-      { path: 'paymentMethod' },
-      {
-        path: 'orderDetail',
-        populate: {
-          path: 'product',
-          model: 'Product',
-          select: 'productName discount',
-          populate: {
-            path: 'discount',
-            select: 'discountPercent discountExpiredDate',
-          },
-        },
-        select: 'quantity itemPrice',
-      },
-      { path: 'orderStatus' },
-    ]);
+    if (paymentMethod === '66e0a2a47aeb0c01762fed3e') {
+      const ipAddr =
+        req.headers['x-forwarded-for'] ||
+        req.connection.remoteAddress ||
+        req.socket.remoteAddress ||
+        req.connection.socket.remoteAddress ||
+        req.ip;
 
-    const totalPrice = populatedOrder.orderDetail.reduce(
-      (acc, orderDetail) =>
-        acc +
-        orderDetail.itemPrice *
-          ((100 - orderDetail.product.discount.discountPercent) / 100) *
-          orderDetail.quantity,
-      0
-    );
+      const locale = req.body.language || 'vn';
 
-    newOrder.totalPrice = totalPrice + newOrder.shippingFee;
+      const vnpUrl = generatePaymentUrl({
+        orderId: createdOrder.data._id,
+        amount: createdOrder.data.totalPrice,
+        ipAddr,
+        locale,
+      });
 
-    await newOrder.save();
+      return res.status(200).json({
+        error: false,
+        redirectUrl: vnpUrl,
+      });
+    }
 
-    populatedOrder.totalPrice = newOrder.totalPrice;
-
-    res.status(201).json({
-      data: populatedOrder,
-      error: false,
+    res.status(createdOrder.status).json({
+      data: createdOrder.data,
+      error: createdOrder.error,
     });
   } catch (error) {
     logError(error, res);
@@ -362,3 +339,163 @@ export const getOrderByPhoneNumber = async (req, res) => {
     logError(error, res);
   }
 };
+
+// export const createOnlinePayment = async (req, res) => {
+//   try {
+//     // Create Order
+//     const { userId } = req.userId;
+
+//     if (!userId) {
+//       return res.status(401).json({
+//         error: 'Invalid credentials',
+//       });
+//     }
+
+//     if (!isValidObjectId(userId)) {
+//       return res.status(400).json({
+//         error: 'Invalid user id',
+//       });
+//     }
+
+//     const {
+//       orderDetail,
+//       shippingAddress,
+//       shippingMethod,
+//       shippingFee,
+//       paymentMethod,
+//     } = req.body;
+
+//     if (!shippingAddress || !shippingMethod || !shippingFee || !paymentMethod) {
+//       return res.status(400).json({
+//         error: 'Missing required fields',
+//       });
+//     }
+
+//     if (!Array.isArray(orderDetail) || orderDetail.length === 0) {
+//       return res.status(400).json({
+//         error: 'Can not create order without products',
+//       });
+//     }
+
+//     const createdOrder = await createOrderService({
+//       userId,
+//       orderDetail,
+//       shippingAddress,
+//       shippingMethod,
+//       shippingFee,
+//       paymentMethod,
+//     });
+
+//     if (createdOrder.status !== 200 || createdOrder.status !== 201) {
+//       return res.status(createdOrder.status).json({
+//         error: createdOrder.error,
+//       });
+//     }
+
+//     res.status(createdOrder.status).json({
+//       data: createdOrder.data,
+//       error: createdOrder.error,
+//     });
+
+//     // VNPay
+//   } catch (error) {
+//     logError(error, res);
+//   }
+// };
+
+export const vnpReturn = async (req, res) => {
+  const vnp_Params = req.query;
+
+  const paymentReturnData = await handlePaymentReturn(vnp_Params);
+
+  if (!paymentReturnData.success) {
+    return res.status(400).json({
+      error: paymentReturnData.message,
+      vnp_Code: paymentReturnData?.vnp_Code,
+    });
+  }
+
+  res.redirect(`${process.env.FRONTEND_URL}/thankyou`);
+};
+
+// export const vnpIpn = async (req, res) => {
+//   try {
+//     const vnp_Params = req.query;
+
+//     const secureHash = vnp_Params['vnp_SecureHash'];
+//     const rspCode = vnp_Params['vnp_ResponseCode'];
+//     let orderId = vnp_Params['vnp_TxnRef'];
+
+//     delete vnp_Params['vnp_SecureHash'];
+//     delete vnp_Params['vnp_SecureHashType'];
+
+//     const secretKey = env.VNP_HASH_SECRET;
+
+//     const signData = QueryString.stringify(vnp_Params, { encode: false });
+//     // const hmac = crypto.createHmac('sha512', secretKey);
+//     // const signed = hmac.update(new Buffer(signData, 'utf-8')).digest('hex');
+//     const signed = createHmacSignature(signData, secretKey);
+
+//     let paymentStatus = '0'; // Giả sử '0' là trạng thái khởi tạo giao dịch, chưa có IPN. Trạng thái này được lưu khi yêu cầu thanh toán chuyển hướng sang Cổng thanh toán VNPAY tại đầu khởi tạo đơn hàng.
+//     //let paymentStatus = '1'; // Giả sử '1' là trạng thái thành công bạn cập nhật sau IPN được gọi và trả kết quả về nó
+//     //let paymentStatus = '2'; // Giả sử '2' là trạng thái thất bại bạn cập nhật sau IPN được gọi và trả kết quả về nó
+
+//     if (secureHash === signed) {
+//       const order = await Order.findOne({ orderId });
+//       const checkOrderId = !!order; // true nếu đơn hàng tồn tại, false nếu không
+
+//       if (checkOrderId) {
+//         let checkAmount = false;
+
+//         if (order) {
+//           const vnp_Amount = parseInt(vnp_Params['vnp_Amount'], 10) / 100; // Chia 100 để lấy số tiền thực tế
+//           checkAmount = order.totalPrice === vnp_Amount;
+//         }
+
+//         if (checkAmount) {
+//           if (paymentStatus == '0') {
+//             if (rspCode == '00') {
+//               // Thanh toán thành công
+//               res
+//                 .status(200)
+//                 .json({ RspCode: '00', Message: 'Success', error: false });
+//             } else {
+//               // Thanh toán thất bại
+//               res.status(200).json({
+//                 RspCode: '00',
+//                 Message: 'Success',
+//                 error: 'Thanh toán thất bại',
+//               });
+//             }
+//           } else {
+//             res.status(200).json({
+//               RspCode: '02',
+//               Message: 'This order has been updated to the payment status',
+//               error: 'Thanh toán thất bại',
+//             });
+//           }
+//         } else {
+//           res.status(200).json({
+//             RspCode: '04',
+//             Message: 'Amount invalid',
+//             error: 'Thanh toán thất bại',
+//           });
+//         }
+//       } else {
+//         res.status(200).json({
+//           RspCode: '01',
+//           Message: 'Order not found',
+//           error: 'Thanh toán thất bại',
+//         });
+//       }
+//     } else {
+//       res.status(200).json({
+//         RspCode: '97',
+//         Message: 'Checksum failed',
+//         error: 'Thanh toán thất bại',
+//       });
+//     }
+//   } catch (error) {
+//     logError(error, res);
+//   }
+// };
