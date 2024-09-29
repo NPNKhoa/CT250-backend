@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import QueryString from 'qs';
 
 import { User, UserRole } from '../models/user.model.js';
 import logError from '../utils/logError.js';
@@ -9,6 +10,8 @@ import {
   validRoles,
 } from '../utils/validation.js';
 import generateToken from '../utils/generateToken.js';
+import compileTemplate from '../utils/compileTemplate.js';
+import { sendEmail } from '../services/email.service.js';
 
 export const addRole = async (req, res) => {
   try {
@@ -60,12 +63,7 @@ export const getAllRoles = async (req, res) => {
 
 export const loginWithSocial = async (req, res) => {
   try {
-    const {
-      fullname,
-      email,
-      avatarImagePath,
-      role = 'customer',
-    } = req.body;
+    const { fullname, email, avatarImagePath, role = 'customer' } = req.body;
 
     if (!validRoles.includes(role)) {
       return res.status(400).json({
@@ -211,7 +209,7 @@ export const signUp = async (req, res) => {
       });
     }
 
-    const newUser = await User.create({
+    const newUser = new User({
       fullname,
       email,
       password: hashedPassword,
@@ -232,6 +230,38 @@ export const signUp = async (req, res) => {
 
     newUser.refreshToken = refreshToken;
 
+    const emailVerificationToken = jwt.sign(
+      { userId: newUser._id },
+      process.env.EMAIL_TOKEN_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const verificationLink = `${process.env.FRONTEND_URL}/email-verification?token=${emailVerificationToken}`;
+
+    const templateData = {
+      shopName: 'KTB Sport',
+      verificationLink,
+    };
+
+    const emailHtml = await compileTemplate(
+      'verifyEmailTemplate',
+      templateData
+    );
+
+    const { data, error } = await sendEmail({
+      from: process.env.ADMIN_EMAIL,
+      to: email,
+      subject: `Xác thực đăng ký tài khoản`,
+      text: '',
+      html: emailHtml,
+    });
+
+    if (error) {
+      return res.status(500).json({
+        error: `email service error: ${error}`,
+      });
+    }
+
     await newUser.save();
 
     res.status(201).json({
@@ -239,6 +269,7 @@ export const signUp = async (req, res) => {
         userId: newUser._id,
         accessToken,
         refreshToken,
+        email: data,
       },
       error: false,
       message: 'User created successfully!',
@@ -362,5 +393,46 @@ export const logout = async (req, res) => {
     res.sendStatus(204);
   } catch (error) {
     logError(error, res);
+  }
+};
+
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    const { userId } = jwt.verify(token, process.env.EMAIL_TOKEN_SECRET);
+
+    const existingUser = await User.findById(userId);
+
+    if (!existingUser) {
+      return res.status(404).json({
+        error: 'Invalid on verifying email',
+      });
+    }
+
+    existingUser.emailVerificationToken = null;
+
+    await existingUser.save();
+
+    return res.status(200).json({
+      error: false,
+      message: 'Verify email successfully!',
+    });
+  } catch (error) {
+    console.log(error);
+
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        error: 'Invalid on verifying email',
+      });
+    } else if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        error: 'Invalid on verifying email',
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Invalid on verifying email',
+    });
   }
 };

@@ -101,6 +101,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    emailVerificationToken: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

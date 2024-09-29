@@ -8,6 +8,7 @@ import {
   refreshToken,
   signUp,
   loginWithSocial,
+  verifyEmail,
 } from '../controllers/auth.controller.js';
 
 import upload from '../configs/multerConfig.js';
@@ -28,5 +29,7 @@ router.post('/logout', auth, logout);
 router.post('/add-role', auth, isAdmin, addRole);
 
 router.get('/roles', auth, isAdmin, getAllRoles);
+
+router.get('/verify-email', verifyEmail);
 
 export default router;

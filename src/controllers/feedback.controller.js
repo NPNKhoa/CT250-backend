@@ -49,12 +49,12 @@ export const createFeedback = async (req, res) => {
     </div>
   `;
 
-    const { data, error } = await sendEmail(
-      senderEmail,
-      `Phản hồi từ ${senderName}`,
-      emailText,
-      emailHtml
-    );
+    const { data, error } = await sendEmail({
+      from: senderEmail,
+      subject: `Phản hồi từ ${senderName}`,
+      text: emailText,
+      html: emailHtml,
+    });
 
     if (error) {
       return res.status(500).json({
