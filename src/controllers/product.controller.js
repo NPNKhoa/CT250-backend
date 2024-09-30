@@ -305,7 +305,7 @@ export const updateProduct = async (req, res) => {
 
     updateFields.countInStock =
       payload.countInStock > 0
-        ? existingProduct.countInStock + payload.countInStock
+        ? payload.countInStock
         : existingProduct.countInStock;
 
     updateFields.discountedPrice =
