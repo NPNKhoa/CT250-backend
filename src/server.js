@@ -29,6 +29,7 @@ import service from './routes/service.route.js';
 import systemConfigRoutes from './routes/systemConfig.route.js';
 import priceFilterRoutes from './routes/priceFilter.route.js';
 import statictis from './routes/statictis.route.js';
+import voucherRoutes from './routes/voucher.route.js';
 
 dotenv.config({ path: `${process.cwd()}/.env` });
 
@@ -76,6 +77,7 @@ app.use(`/api/${apiVersion}/service`, service);
 app.use(`/api/${apiVersion}/system-configurations`, systemConfigRoutes);
 app.use(`/api/${apiVersion}/price-filter`, priceFilterRoutes);
 app.use(`/api/${apiVersion}/stat`, statictis);
+app.use(`/api/${apiVersion}/vouchers`, voucherRoutes);
 app.get(
   '/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
