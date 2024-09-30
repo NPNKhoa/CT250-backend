@@ -3,6 +3,7 @@ import express from 'express';
 // import { auth } from '../middlewares/authentication.js';
 import {
   getTotalRevenue,
+  getRevenueByTime,
   getTotalRevenueByMonth,
   getRevenueByYear,
   getRevenueForAllYears,
@@ -16,6 +17,7 @@ import {
 const router = express.Router();
 
 router.get('/totalrevenue', getTotalRevenue);
+router.get('/totalrevenuebytime', getRevenueByTime);
 router.get('/totalrevenuebymonth', getTotalRevenueByMonth);
 router.get('/totalrevenuebyyear', getRevenueByYear);
 router.get('/totalrevenueallyears', getRevenueForAllYears);
