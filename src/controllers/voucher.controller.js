@@ -11,7 +11,7 @@ export const getAllVouchers = async (req, res) => {
     const { page = 1, limit = 10, latest = true, status } = req.query;
 
     const query = {};
-    const sortOptions = {};
+    let sortOptions = {};
 
     if (status === 'expired') {
       query.expiredDate = { $lt: Date.now() };
@@ -93,19 +93,29 @@ export const createVoucher = async (req, res) => {
       maxUsage,
     } = req.body;
 
-    if (
-      !voucherCode ||
-      !voucherName ||
-      !voucherType ||
-      !discountPercent ||
-      !maxUsage
-    ) {
+    if (!voucherCode || !voucherName || !voucherType || !discountPercent) {
       return res.status(400).json({
         error: 'Missing fields',
       });
     }
 
-    if (voucherType !== 'public' || voucherType !== 'private') {
+    if (voucherType === 'public' && !maxUsage) {
+      return res.status(400).json({
+        error: 'Missing maxUsage',
+      });
+    }
+
+    const existingVoucher = await Voucher.findOne({ voucherCode });
+
+    if (existingVoucher) {
+      return res.status(409).json({
+        error: 'This voucher code already exist',
+      });
+    }
+
+    console.log(voucherType);
+
+    if (!['public', 'private'].includes(voucherType)) {
       return res.status(400).json({
         error: 'Invalid voucherType',
       });
@@ -155,6 +165,14 @@ export const updateVoucher = async (req, res) => {
       });
     }
 
+    const existingVoucher = await Voucher.findById(id);
+
+    if (!existingVoucher) {
+      return res.status(404).json({
+        error: 'Not found voucher',
+      });
+    }
+
     const {
       voucherCode,
       voucherName,
@@ -165,7 +183,10 @@ export const updateVoucher = async (req, res) => {
       maxUsage,
     } = req.body;
 
-    if (voucherType !== 'public' || voucherType !== 'private') {
+    if (
+      voucherType &&
+      (voucherType !== 'public' || voucherType !== 'private')
+    ) {
       return res.status(400).json({
         error: 'Invalid voucherType',
       });
@@ -186,19 +207,20 @@ export const updateVoucher = async (req, res) => {
       });
     }
 
-    const updatedVoucher = await Voucher.findByIdAndUpdate(
-      id,
-      {
-        voucherCode,
-        voucherName,
-        voucherType,
-        discountPercent,
-        startDate,
-        expiredDate,
-        maxUsage,
-      },
-      { new: true, runValidators: true }
-    );
+    const newVoucher = {
+      voucherCode: voucherCode || existingVoucher.voucherCode,
+      voucherName: voucherName || existingVoucher.voucherName,
+      voucherType: voucherType || existingVoucher.voucherType,
+      discountPercent: discountPercent || existingVoucher.discountPercent,
+      startDate: startDate || existingVoucher.startDate,
+      expiredDate: expiredDate || existingVoucher.expiredDate,
+      maxUsage: maxUsage || existingVoucher.maxUsage,
+    };
+
+    const updatedVoucher = await Voucher.findByIdAndUpdate(id, newVoucher, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!updatedVoucher) {
       return res.status(404).json({
@@ -233,7 +255,7 @@ export const deleteVoucher = async (req, res) => {
       });
     }
 
-    res.status(204);
+    res.sendStatus(204);
   } catch (error) {
     logError(error, res);
   }
