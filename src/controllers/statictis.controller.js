@@ -68,6 +68,99 @@ export const getTotalRevenueByMonth = async (req, res) => {
   }
 };
 
+export const getRevenueByTime = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ message: 'Vui lòng cung cấp ngày bắt đầu và ngày kết thúc.' });
+    }
+
+    // Chuyển đổi startDate và endDate thành đối tượng Date
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // Đặt thời gian kết thúc vào cuối ngày
+
+    // Tạo một mảng chứa tất cả các ngày trong khoảng thời gian từ startDate đến endDate
+    const daysArray = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      daysArray.push(new Date(d).toISOString().split('T')[0]); // Chỉ lấy phần ngày (YYYY-MM-DD)
+    }
+
+    // Lọc và nhóm các đơn hàng theo ngày, tính doanh thu và phân loại thanh toán
+    const revenueData = await Order.aggregate([
+      {
+        $match: {
+          orderDate: {
+            $gte: start, // Lọc các đơn hàng từ ngày bắt đầu
+            $lte: end, // Lọc đến ngày kết thúc
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          totalPrice: 1,
+          paymentStatus: 1,
+          // Chuyển orderDate thành định dạng chuỗi ngày (YYYY-MM-DD)
+          orderDate: {
+            $dateToString: { format: '%Y-%m-%d', date: '$orderDate' },
+          },
+        },
+      },
+      {
+        // Nhóm các đơn hàng theo ngày
+        $group: {
+          _id: '$orderDate',
+          totalRevenue: { $sum: '$totalPrice' }, // Tính tổng doanh thu của ngày
+          paidOrders: {
+            $sum: { $cond: [{ $eq: ['$paymentStatus', true] }, 1, 0] }, // Đếm số đơn hàng đã thanh toán
+          },
+          unpaidOrders: {
+            $sum: { $cond: [{ $eq: ['$paymentStatus', false] }, 1, 0] }, // Đếm số đơn hàng chưa thanh toán
+          },
+        },
+      },
+      {
+        // Đặt tên lại cho trường `_id` thành `orderDate`
+        $project: {
+          _id: 0,
+          orderDate: '$_id',
+          totalRevenue: 1,
+          paidOrders: 1,
+          unpaidOrders: 1,
+        },
+      },
+    ]);
+
+    // Tạo dữ liệu đầy đủ cho tất cả các ngày
+    const fullData = daysArray.map((day) => {
+      const dayData = revenueData.find((data) => data.orderDate === day);
+      return {
+        orderDate: day,
+        totalRevenue: dayData ? dayData.totalRevenue : 0, // Nếu không có doanh thu thì trả về 0
+        paidOrders: dayData ? dayData.paidOrders : 0, // Nếu không có đơn hàng thanh toán thì trả về 0
+        unpaidOrders: dayData ? dayData.unpaidOrders : 0, // Nếu không có đơn hàng chưa thanh toán thì trả về 0
+      };
+    });
+
+    // Trả về kết quả
+    return res.status(200).json({
+      message: 'Thống kê doanh thu và trạng thái thanh toán thành công',
+      data: fullData,
+      startDate,
+      endDate,
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: 'Đã có lỗi xảy ra, vui lòng thử lại sau.' });
+  }
+};
+
 export const getRevenueByYear = async (req, res) => {
   try {
     const { year } = req.query;
