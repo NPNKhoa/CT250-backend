@@ -37,6 +37,7 @@ export const addServices = async (req, res) => {
 export const getAllServices = async (req, res) => {
     try {
         const { serviceName = '', page = 1, limit = 10 } = req.query;
+        const parsedLimit = parseInt(limit);
 
         const query = {};
 
@@ -44,9 +45,14 @@ export const getAllServices = async (req, res) => {
             query.serviceName = { $regex: serviceName, $options: 'i' };
         }
 
-        const services = await Service.find(query)
-            .skip((page - 1) * limit)
-            .limit(parseInt(limit));
+        let services;
+        if (parsedLimit === -1) {
+            services = await Service.find(query);
+        } else {
+            services = await Service.find(query)
+                .skip((page - 1) * parsedLimit)
+                .limit(parsedLimit);
+        }
 
         if (!Array.isArray(services) || services.length === 0) {
             return res.status(404).json({
@@ -55,7 +61,7 @@ export const getAllServices = async (req, res) => {
         }
 
         const totalDocs = await Service.countDocuments(query);
-        const totalPage = Math.ceil(totalDocs / limit);
+        const totalPage = parsedLimit === -1 ? 1 : Math.ceil(totalDocs / parsedLimit);
 
         res.status(200).json({
             data: services,

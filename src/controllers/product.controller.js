@@ -221,6 +221,18 @@ export const getProductById = async (req, res) => {
   }
 };
 
+export const uploadImage = async (req, res) => {
+  try {
+    const productImagePath = req?.files?.map((file) => file.path);
+    res.status(200).json({
+      data: productImagePath,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
 export const addProduct = async (req, res) => {
   try {
     const { status, payload } = await productValidation(req.body);
@@ -289,6 +301,7 @@ export const updateProduct = async (req, res) => {
     updateFields.price = payload.price || existingProduct.price;
     updateFields.description =
       payload.description || existingProduct.description;
+    updateFields.productImagePath = payload.productImagePath || existingProduct.productImagePath;
 
     updateFields.countInStock =
       payload.countInStock > 0

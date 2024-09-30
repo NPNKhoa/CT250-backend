@@ -38,6 +38,7 @@ export const addBrand = async (req, res) => {
 export const getAllBrands = async (req, res) => {
   try {
     const { brandName = '', page = 1, limit = 10 } = req.query;
+    const parsedLimit = parseInt(limit);
 
     const query = {};
 
@@ -45,9 +46,14 @@ export const getAllBrands = async (req, res) => {
       query.brandName = { $regex: brandName, $options: 'i' };
     }
 
-    const brands = await Brand.find(query)
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+    let brands;
+    if (parsedLimit === -1) {
+        brands = await Brand.find(query);
+    } else {
+        brands = await Brand.find(query)
+            .skip((page - 1) * parsedLimit)
+            .limit(parsedLimit);
+    }
 
     if (!Array.isArray(brands) || brands.length === 0) {
       return res.status(404).json({
@@ -56,7 +62,7 @@ export const getAllBrands = async (req, res) => {
     }
 
     const totalDocs = await Brand.countDocuments(query);
-    const totalPage = Math.ceil(totalDocs / limit);
+    const totalPage = parsedLimit === -1 ? 1 : Math.ceil(totalDocs / parsedLimit);
 
     res.status(200).json({
       data: brands,

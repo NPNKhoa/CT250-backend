@@ -5,6 +5,7 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
+  uploadImage,
 } from '../controllers/product.controller.js';
 import upload from '../configs/multerConfig.js';
 
@@ -15,6 +16,8 @@ router.get('/:id', getProductById);
 router.get('/', getAllProducts);
 
 router.post('/', upload.array('productImagePath'), addProduct);
+
+router.post('/upload-image', upload.array('images'), uploadImage);
 
 router.put('/:id', updateProduct);
 

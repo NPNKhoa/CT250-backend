@@ -5,6 +5,7 @@ import logError from '../utils/logError.js';
 export const getAllTypes = async (req, res) => {
   try {
     const { type = '', page = 1, limit = 10 } = req.query;
+    const parsedLimit = parseInt(limit);
 
     const query = {};
 
@@ -12,9 +13,14 @@ export const getAllTypes = async (req, res) => {
       query.type = { $regex: type, $options: 'i' };
     }
 
-    const productTypes = await ProductType.find(query)
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+    let productTypes;
+    if (parsedLimit === -1) {
+      productTypes = await ProductType.find(query);
+    } else {
+      productTypes = await ProductType.find(query)
+        .skip((page - 1) * parsedLimit)
+        .limit(parsedLimit);
+    }
 
     if (!Array.isArray(productTypes) || productTypes.length === 0) {
       return res.status(404).json({
@@ -23,7 +29,7 @@ export const getAllTypes = async (req, res) => {
     }
 
     const totalDocs = await ProductType.countDocuments(query);
-    const totalPages = Math.ceil(totalDocs / limit);
+    const totalPages = parsedLimit === -1 ? 1 : Math.ceil(totalDocs / parsedLimit);
 
     res.status(200).json({
       data: productTypes,
