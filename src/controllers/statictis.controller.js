@@ -481,6 +481,147 @@ export const getQuantityPerProductType = async (req, res) => {
   }
 };
 
+export const getTotalSoldPerMonth = async (req, res) => {
+  try {
+    // Lấy tháng và năm từ query (nếu không có thì dùng tháng hiện tại)
+    const { month, year } = req.query;
+    const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
+    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+
+    // Tính toán thời gian bắt đầu và kết thúc của tháng
+    const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
+    const endOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
+
+    // Kiểm tra đơn hàng trong tháng đã chọn
+    const ordersInMonth = await Order.find({
+      orderDate: { $gte: startOfMonth, $lte: endOfMonth },
+    });
+
+    if (ordersInMonth.length === 0) {
+      return res
+        .status(404)
+        .json({ message: 'Không có đơn hàng nào trong tháng này.' });
+    }
+
+    const result = await Order.aggregate([
+      {
+        // Lọc các đơn hàng trong tháng được chọn
+        $match: {
+          orderDate: { $gte: startOfMonth, $lte: endOfMonth },
+        },
+      },
+      {
+        // Tách từng orderDetail thành các document riêng
+        $unwind: '$orderDetail',
+      },
+      {
+        // Lookup để lấy thông tin sản phẩm từ CartDetail -> Product
+        $lookup: {
+          from: 'cartdetails',
+          localField: 'orderDetail', // field để join từ Order
+          foreignField: '_id', // field từ CartDetail
+          as: 'cartDetail',
+        },
+      },
+      {
+        $unwind: '$cartDetail', // Mở rộng cartDetail (mảng) thành các document riêng
+      },
+      {
+        // Lookup để lấy thông tin sản phẩm từ Product
+        $lookup: {
+          from: 'products', // Tên collection của Product
+          localField: 'cartDetail.product', // product field từ CartDetail
+          foreignField: '_id', // _id từ Product
+          as: 'product',
+        },
+      },
+      {
+        $unwind: '$product', // Mở rộng product thành document riêng
+      },
+      {
+        // Lookup để lấy thông tin discount từ Discount collection
+        $lookup: {
+          from: 'discounts', // Tên collection của Discount
+          localField: 'product.discount', // Tham chiếu tới discount của product
+          foreignField: '_id', // _id từ Discount
+          as: 'discount',
+        },
+      },
+      {
+        $unwind: {
+          path: '$discount',
+          preserveNullAndEmptyArrays: true, // Để đảm bảo nếu sản phẩm không có giảm giá thì vẫn hiện thông tin sản phẩm
+        },
+      },
+      {
+        // Nhóm theo từng sản phẩm và tính tổng số lượng đã bán
+        $group: {
+          _id: '$product._id', // Nhóm theo ID sản phẩm
+          productCode: { $first: '$product.productCode' }, // Lấy mã sản phẩm
+          productName: { $first: '$product.productName' }, // Lấy tên sản phẩm
+          price: { $first: '$product.price' }, // Lấy giá sản phẩm
+          discountPercent: { $first: '$discount.discountPercent' }, // Lấy phần trăm giảm giá
+          discountStartDate: { $first: '$discount.discountStartDate' }, // Ngày bắt đầu giảm giá
+          discountExpiredDate: { $first: '$discount.discountExpiredDate' }, // Ngày hết hạn giảm giá
+          totalSold: { $sum: '$cartDetail.quantity' }, // Tính tổng số lượng sản phẩm đã bán
+        },
+      },
+      {
+        // Sắp xếp theo tổng số lượng bán từ cao đến thấp
+        $sort: { totalSold: -1 },
+      },
+      {
+        // Giới hạn chỉ lấy 10 sản phẩm bán nhiều nhất
+        $limit: 10,
+      },
+      {
+        // Tính tổng tất cả sản phẩm đã bán ra trong tháng
+        $group: {
+          _id: null,
+          topProducts: {
+            $push: {
+              productId: '$_id',
+              productName: '$productName',
+              price: '$price',
+              discountPercent: '$discountPercent', // Thêm discountPercent
+              discountStartDate: '$discountStartDate', // Thêm discountStartDate
+              discountExpiredDate: '$discountExpiredDate', // Thêm discountExpiredDate
+              totalSold: '$totalSold',
+            }, // Lưu trữ thông tin sản phẩm và số lượng bán
+          },
+          totalProductsSold: { $sum: '$totalSold' }, // Tính tổng tất cả sản phẩm đã bán
+        },
+      },
+      {
+        // Project để định dạng kết quả cuối cùng
+        $project: {
+          _id: 0, // Ẩn _id
+          topProducts: 1, // Sản phẩm bán nhiều nhất và số lượng bán ra
+          totalProductsSold: 1, // Tổng số sản phẩm đã bán trong tháng
+        },
+      },
+    ]);
+
+    if (!result || result.length === 0) {
+      return res
+        .status(404)
+        .json({ message: 'Không có dữ liệu cho tháng này.' });
+    }
+
+    // Trả về danh sách top 10 sản phẩm bán nhiều nhất và tổng số sản phẩm đã bán trong tháng
+    res.status(200).json({
+      data: result[0], // Kết quả của aggregation
+      error: false,
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy dữ liệu:', error);
+    res.status(500).json({
+      message: 'Đã xảy ra lỗi khi lấy dữ liệu.',
+      error: true,
+    });
+  }
+};
+
 export const getLatestOrders = async (req, res) => {
   try {
     const {
