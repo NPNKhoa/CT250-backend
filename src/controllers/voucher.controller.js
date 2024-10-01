@@ -26,16 +26,15 @@ export const getAllVouchers = async (req, res) => {
       sortOptions = { createdAt: -1 };
     }
 
-      let vouchers;
-      if (parsedLimit === -1) {
-          vouchers = await Voucher.find(query)
-              .sort(sortOptions);
-      } else {
-          vouchers = await Voucher.find(query)
-              .sort(sortOptions)
-              .skip((page - 1) * parsedLimit)
-              .limit(parsedLimit);
-      }
+    let vouchers;
+    if (parsedLimit === -1) {
+      vouchers = await Voucher.find(query).sort(sortOptions);
+    } else {
+      vouchers = await Voucher.find(query)
+        .sort(sortOptions)
+        .skip((page - 1) * parsedLimit)
+        .limit(parsedLimit);
+    }
 
     if (Array.isArray(vouchers) && vouchers.length === 0) {
       return res.status(404).json({
@@ -44,7 +43,8 @@ export const getAllVouchers = async (req, res) => {
     }
 
     const totalDocs = await Voucher.countDocuments(query);
-    const totalPages = parsedLimit === -1 ? 1 : Math.ceil(totalDocs / parsedLimit);
+    const totalPages =
+      parsedLimit === -1 ? 1 : Math.ceil(totalDocs / parsedLimit);
 
     res.status(200).json({
       data: vouchers,
@@ -95,6 +95,7 @@ export const createVoucher = async (req, res) => {
       voucherName,
       voucherType,
       discountPercent,
+      maxPriceDiscount,
       startDate,
       expiredDate,
       maxUsage,
@@ -120,8 +121,6 @@ export const createVoucher = async (req, res) => {
       });
     }
 
-    console.log(voucherType);
-
     if (!['public', 'private'].includes(voucherType)) {
       return res.status(400).json({
         error: 'Invalid voucherType',
@@ -143,11 +142,18 @@ export const createVoucher = async (req, res) => {
       });
     }
 
+    if (!isNaN(maxPriceDiscount) && maxPriceDiscount < 0) {
+      return res.status(400).json({
+        error: 'max price discount must be greater than or equal to 0',
+      });
+    }
+
     const createdVoucher = await Voucher.create({
       voucherCode,
       voucherName,
       voucherType,
       discountPercent,
+      maxPriceDiscount,
       startDate,
       expiredDate,
       maxUsage,
@@ -185,6 +191,7 @@ export const updateVoucher = async (req, res) => {
       voucherName,
       voucherType,
       discountPercent,
+      maxPriceDiscount,
       startDate,
       expiredDate,
       maxUsage,
@@ -219,6 +226,7 @@ export const updateVoucher = async (req, res) => {
       voucherName: voucherName || existingVoucher.voucherName,
       voucherType: voucherType || existingVoucher.voucherType,
       discountPercent: discountPercent || existingVoucher.discountPercent,
+      maxPriceDiscount: maxPriceDiscount || existingVoucher.maxPriceDiscount,
       startDate: startDate || existingVoucher.startDate,
       expiredDate: expiredDate || existingVoucher.expiredDate,
       maxUsage: maxUsage || existingVoucher.maxUsage,
@@ -274,6 +282,8 @@ export const collectVoucher = async (req, res) => {
 
   try {
     const { userId } = req.userId;
+
+    console.log(req.userId);
 
     if (!userId) {
       return res.status(400).json({
@@ -356,20 +366,33 @@ export const collectVoucher = async (req, res) => {
     }
 
     const newUserVoucher = await UserVoucher.create(
-      {
-        userId,
-        voucherId,
-        collectedAt: Date.now(),
-      },
+      [
+        {
+          userId,
+          voucherId,
+          collectedAt: Date.now(),
+        },
+      ],
       { session }
     );
 
     await session.commitTransaction();
     session.endSession();
 
-    const populatedUserVoucher = await UserVoucher.findById(newUserVoucher._id)
-      .populate('userId')
-      .populate('voucherId');
+    const populatedUserVoucher = await UserVoucher.findById(
+      newUserVoucher[0]._id
+    )
+      .populate({
+        path: 'userId',
+        model: 'User',
+        select: 'fullname email avatarImagePath',
+      })
+      .populate({
+        path: 'voucherId',
+        model: 'Voucher',
+        select:
+          'voucherCode voucherName discountPercent maxPriceDiscount startDate expiredDate maxUsage',
+      });
 
     res.status(200).json({
       data: populatedUserVoucher,
@@ -382,7 +405,7 @@ export const collectVoucher = async (req, res) => {
   }
 };
 
-export const getPublishingVoucher = async (req, res) => {
+export const getPublishingVoucher = async (_, res) => {
   try {
     const query = {
       expiredDate: { $gt: new Date() },
