@@ -7,12 +7,14 @@ import {
   getPublishingVoucher,
   getVoucherById,
   updateVoucher,
+  getUserVouchers,
 } from '../controllers/voucher.controller.js';
 import { auth } from '../middlewares/authentication.js';
 
 const router = express.Router();
 
 router.get('/', getAllVouchers);
+router.get('/byuser', auth, getUserVouchers);
 
 router.get('/publishing', getPublishingVoucher);
 
