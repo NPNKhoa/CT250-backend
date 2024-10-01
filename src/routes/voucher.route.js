@@ -8,6 +8,7 @@ import {
   getVoucherById,
   updateVoucher,
 } from '../controllers/voucher.controller.js';
+import { auth } from '../middlewares/authentication.js';
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get('/:id', getVoucherById);
 
 router.post('/', createVoucher);
 
-router.post('/collect', collectVoucher);
+router.post('/collect', auth, collectVoucher);
 
 router.put('/:id', updateVoucher);
 

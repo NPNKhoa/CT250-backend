@@ -37,6 +37,11 @@ const voucherSchema = new mongoose.Schema(
       max: 100,
       default: 0,
     },
+    maxPriceDiscount: {
+      type: Number,
+      required: true,
+      default: 500,
+    },
     startDate: {
       type: Date,
       required: true,
