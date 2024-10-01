@@ -87,7 +87,7 @@ export const addType = async (req, res) => {
 
     if (existingProduct) {
       return res.status(409).json({
-        error: 'Product type is already exist',
+        error: 'This product type is already exist',
       });
     }
 

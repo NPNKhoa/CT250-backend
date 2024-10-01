@@ -89,7 +89,7 @@ export const addSpecification = async (req, res) => {
 
     if (existingSpecification) {
       return res.status(400).json({
-        error: 'This specification already exist',
+        error: 'This specification is already exist',
       });
     }
 
