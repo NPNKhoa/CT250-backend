@@ -1,12 +1,10 @@
-import QueryString from 'qs';
-
 import logError from '../utils/logError.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
+import { validatePhone } from '../utils/validation.js';
 
 import { Order } from '../models/order.model.js';
 import { User, UserRole } from '../models/user.model.js';
-import { validatePhone } from '../utils/validation.js';
-import createHmacSignature from '../utils/createHmacSignature.js';
+
 import { createOrderService } from '../services/order.service.js';
 import {
   generatePaymentUrl,
@@ -35,11 +33,18 @@ export const createOrder = async (req, res) => {
       shippingMethod,
       shippingFee,
       paymentMethod,
+      voucherId,
     } = req.body;
 
     if (!shippingAddress || !shippingMethod || !shippingFee || !paymentMethod) {
       return res.status(400).json({
         error: 'Missing required fields',
+      });
+    }
+
+    if (voucherId && !isValidObjectId(voucherId)) {
+      return res.status(400).json({
+        error: 'Invalid voucher id',
       });
     }
 
@@ -56,6 +61,7 @@ export const createOrder = async (req, res) => {
       shippingMethod,
       shippingFee,
       paymentMethod,
+      voucherId,
     });
 
     if (createdOrder.data === null) {
