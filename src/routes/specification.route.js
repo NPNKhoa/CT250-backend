@@ -17,6 +17,6 @@ router.post('/', addSpecification);
 
 router.put('/:id', updateSpecification);
 
-router.delete(':/id', deleteSpecification);
+router.delete('/:id', deleteSpecification);
 
 export default router;

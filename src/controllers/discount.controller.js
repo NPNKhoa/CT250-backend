@@ -171,9 +171,9 @@ export const updateDiscount = async (req, res) => {
       });
     }
 
-    const { discountPercent, discountExpiredDate } = req.body;
+    const { discountPercent, discountExpiredDate, discountStartDate } = req.body;
 
-    if (discountPercent === null || !discountExpiredDate) {
+    if (discountPercent === null || !discountExpiredDate || !discountStartDate) {
       return res.status(400).json({
         error: 'Missing required fields',
       });
@@ -190,6 +190,7 @@ export const updateDiscount = async (req, res) => {
     }
 
     const expiredDate = parseISO(discountExpiredDate);
+    const startDate = parseISO(discountStartDate);
 
     if (!isValid(expiredDate)) {
       return res.status(400).json({
@@ -207,6 +208,7 @@ export const updateDiscount = async (req, res) => {
       _id: { $ne: discountId },
       discountPercent,
       discountExpiredDate: expiredDate,
+      discountStartDate: startDate,
     });
 
     if (existingDiscount) {
@@ -220,6 +222,7 @@ export const updateDiscount = async (req, res) => {
       {
         discountPercent,
         discountExpiredDate: expiredDate,
+        discountStartDate: startDate,
       },
       { new: true, runValidators: true }
     );
