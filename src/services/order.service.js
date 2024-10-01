@@ -105,8 +105,8 @@ export const createOrderService = async ({
   let discountedPrice =
     totalPrice - (totalPrice * existingVoucher.discountPercent) / 100;
 
-  if (discountedPrice > existingVoucher.maxPriceDiscount) {
-    discountedPrice = existingVoucher.maxPriceDiscount;
+  if (discountedPrice > existingVoucher.maxPriceDiscount * 100) {
+    discountedPrice = existingVoucher.maxPriceDiscount * 100;
   }
 
   newOrder.totalPrice = discountedPrice + newOrder.shippingFee;
