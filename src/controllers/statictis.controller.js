@@ -111,15 +111,19 @@ export const getRevenueByTime = async (req, res) => {
         },
       },
       {
-        // Nhóm các đơn hàng theo ngày
+        // Nhóm các đơn hàng theo ngày và phân loại doanh thu đã thanh toán và chưa thanh toán
         $group: {
           _id: '$orderDate',
           totalRevenue: { $sum: '$totalPrice' }, // Tính tổng doanh thu của ngày
-          paidOrders: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', true] }, 1, 0] }, // Đếm số đơn hàng đã thanh toán
+          paidRevenue: {
+            $sum: {
+              $cond: [{ $eq: ['$paymentStatus', true] }, '$totalPrice', 0],
+            }, // Doanh thu từ đơn hàng đã thanh toán
           },
-          unpaidOrders: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', false] }, 1, 0] }, // Đếm số đơn hàng chưa thanh toán
+          unpaidRevenue: {
+            $sum: {
+              $cond: [{ $eq: ['$paymentStatus', false] }, '$totalPrice', 0],
+            }, // Doanh thu từ đơn hàng chưa thanh toán
           },
         },
       },
@@ -129,8 +133,8 @@ export const getRevenueByTime = async (req, res) => {
           _id: 0,
           orderDate: '$_id',
           totalRevenue: 1,
-          paidOrders: 1,
-          unpaidOrders: 1,
+          paidRevenue: 1, // Doanh thu từ đơn hàng đã thanh toán
+          unpaidRevenue: 1, // Doanh thu từ đơn hàng chưa thanh toán
         },
       },
     ]);
@@ -141,8 +145,8 @@ export const getRevenueByTime = async (req, res) => {
       return {
         orderDate: day,
         totalRevenue: dayData ? dayData.totalRevenue : 0, // Nếu không có doanh thu thì trả về 0
-        paidOrders: dayData ? dayData.paidOrders : 0, // Nếu không có đơn hàng thanh toán thì trả về 0
-        unpaidOrders: dayData ? dayData.unpaidOrders : 0, // Nếu không có đơn hàng chưa thanh toán thì trả về 0
+        paidRevenue: dayData ? dayData.paidRevenue : 0, // Nếu không có doanh thu đã thanh toán thì trả về 0
+        unpaidRevenue: dayData ? dayData.unpaidRevenue : 0, // Nếu không có doanh thu chưa thanh toán thì trả về 0
       };
     });
 
