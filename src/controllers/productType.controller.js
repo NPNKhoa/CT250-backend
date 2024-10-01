@@ -114,15 +114,15 @@ export const updateType = async (req, res) => {
       });
     }
 
-    const { productTypeName } = req.body;
+    const { productTypeName = '' } = req.body;
 
-    if (productTypeName) {
+    if (!productTypeName) {
       return res.status(400).json({
         error: 'Missing required field',
       });
     }
 
-    const existingProductType = await ProductType.find({
+    const existingProductType = await ProductType.findOne({
       _id: { $ne: productTypeId },
       productTypeName,
     });
@@ -133,7 +133,7 @@ export const updateType = async (req, res) => {
       });
     }
 
-    const updatedProductType = ProductType.findByIdAndUpdate(
+    const updatedProductType = await ProductType.findByIdAndUpdate(
       productTypeId,
       {
         productTypeName,
