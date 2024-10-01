@@ -9,6 +9,7 @@ import logError from '../utils/logError.js';
 export const getAllVouchers = async (req, res) => {
   try {
     const { page = 1, limit = 10, latest = true, status } = req.query;
+    const parsedLimit = parseInt(limit);
 
     const query = {};
     let sortOptions = {};
@@ -25,10 +26,16 @@ export const getAllVouchers = async (req, res) => {
       sortOptions = { createdAt: -1 };
     }
 
-    const vouchers = await Voucher.find(query)
-      .sort(sortOptions)
-      .skip((page - 1) * limit)
-      .limit(limit);
+      let vouchers;
+      if (parsedLimit === -1) {
+          vouchers = await Voucher.find(query)
+              .sort(sortOptions);
+      } else {
+          vouchers = await Voucher.find(query)
+              .sort(sortOptions)
+              .skip((page - 1) * parsedLimit)
+              .limit(parsedLimit);
+      }
 
     if (Array.isArray(vouchers) && vouchers.length === 0) {
       return res.status(404).json({
@@ -37,7 +44,7 @@ export const getAllVouchers = async (req, res) => {
     }
 
     const totalDocs = await Voucher.countDocuments(query);
-    const totalPages = Math.ceil(totalDocs / limit);
+    const totalPages = parsedLimit === -1 ? 1 : Math.ceil(totalDocs / parsedLimit);
 
     res.status(200).json({
       data: vouchers,

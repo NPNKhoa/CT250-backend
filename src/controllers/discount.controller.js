@@ -7,6 +7,7 @@ import logError from '../utils/logError.js';
 export const getAllDiscount = async (req, res) => {
   try {
     const { discountExpiredDate = null, page = 1, limit = 10 } = req.query;
+    const parsedLimit = parseInt(limit);
 
     const query = {};
 
@@ -17,9 +18,14 @@ export const getAllDiscount = async (req, res) => {
       };
     }
 
-    const discounts = await Discount.find(query)
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+    let discounts;
+    if (parsedLimit === -1) {
+      discounts = await Discount.find(query);
+    } else {
+      discounts = await Discount.find(query)
+        .skip((page - 1) * parsedLimit)
+        .limit(parsedLimit);
+    }
 
     if (!Array.isArray(discounts) || !discounts.length === 0) {
       return res.status(404).json({
@@ -28,7 +34,7 @@ export const getAllDiscount = async (req, res) => {
     }
 
     const totalDocs = await Discount.countDocuments(query);
-    const totalPages = Math.ceil(totalDocs / limit);
+    const totalPages = parsedLimit === -1 ? 1 : Math.ceil(totalDocs / parsedLimit);
 
     res.status(200).json({
       data: discounts,
