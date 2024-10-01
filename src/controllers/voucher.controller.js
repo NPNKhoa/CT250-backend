@@ -252,6 +252,52 @@ export const updateVoucher = async (req, res) => {
   }
 };
 
+export const getUserVouchers = async (req, res) => {
+  try {
+    const { userId } = req.userId; // Giả sử userId được lấy từ req.userId
+
+    // Kiểm tra xem userId có tồn tại không
+    if (!userId) {
+      return res.status(400).json({
+        error: 'Missing userId',
+      });
+    }
+
+    // Kiểm tra định dạng của userId
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({
+        error: 'Invalid userId format',
+      });
+    }
+
+    // Tìm tất cả các voucher mà người dùng đã thu thập
+    const userVouchers = await UserVoucher.find({ userId })
+      .populate({
+        path: 'voucherId',
+        model: 'Voucher',
+        select:
+          'voucherCode voucherName discountPercent maxPriceDiscount startDate expiredDate maxUsage',
+      })
+      .sort({ collectedAt: -1 }); // Sắp xếp theo thời gian thu thập giảm dần
+
+    if (!userVouchers || userVouchers.length === 0) {
+      return res.status(404).json({
+        error: 'No vouchers found for this user',
+      });
+    }
+
+    res.status(200).json({
+      data: userVouchers,
+      error: false,
+    });
+  } catch (error) {
+    console.error(error); // Để dễ dàng theo dõi lỗi
+    res.status(500).json({
+      error: 'An error occurred while fetching user vouchers',
+    });
+  }
+};
+
 export const deleteVoucher = async (req, res) => {
   try {
     const { id } = req.params;
