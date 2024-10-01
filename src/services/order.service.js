@@ -58,6 +58,7 @@ export const createOrderService = async ({
     shippingFee,
     paymentMethod,
     orderDetail,
+    voucher: voucherId,
   });
 
   await cart.save();
@@ -85,6 +86,11 @@ export const createOrderService = async ({
       select: 'quantity itemPrice',
     },
     { path: 'orderStatus' },
+    {
+      path: 'voucher',
+      model: 'Voucher',
+      select: 'voucherCode voucherName discountPercent',
+    },
   ]);
 
   const totalPrice = populatedOrder.orderDetail.reduce(
