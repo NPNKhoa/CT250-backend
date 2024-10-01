@@ -96,6 +96,11 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    voucher: {
+      type: mongoose.Types.ObjectId,
+      ref: 'Voucher',
+      default: null,
+    },
   },
   { timestamps: true }
 );

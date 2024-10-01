@@ -1,5 +1,6 @@
 import { Cart, CartDetail } from '../models/cart.model.js';
-import { Order, PaymentMethod } from '../models/order.model.js';
+import { Order } from '../models/order.model.js';
+import { Voucher } from '../models/voucher.model.js';
 
 export const createOrderService = async ({
   userId,
@@ -8,6 +9,7 @@ export const createOrderService = async ({
   shippingMethod,
   shippingFee,
   paymentMethod,
+  voucherId,
 }) => {
   const cart = await Cart.findOne({ userId }).populate('cartItems');
 
@@ -17,6 +19,20 @@ export const createOrderService = async ({
       error: 'Cart Not Found',
       data: null,
     };
+  }
+
+  const existingVoucher = await Voucher.findById(voucherId);
+
+  if (!existingVoucher) {
+    return res.status(404).json({
+      error: 'Not found voucher',
+    });
+  }
+
+  if (existingVoucher.expiredDate < new Date()) {
+    return res.status(400).json({
+      error: 'Voucher expired!',
+    });
   }
 
   const existingCartDetail = await CartDetail.find({
@@ -80,7 +96,14 @@ export const createOrderService = async ({
     0
   );
 
-  newOrder.totalPrice = totalPrice + newOrder.shippingFee;
+  let discountedPrice =
+    totalPrice - (totalPrice * existingVoucher.discountPercent) / 100;
+
+  if (discountedPrice > existingVoucher.maxPriceDiscount) {
+    discountedPrice = existingVoucher.maxPriceDiscount;
+  }
+
+  newOrder.totalPrice = discountedPrice + newOrder.shippingFee;
 
   await newOrder.save();
 
