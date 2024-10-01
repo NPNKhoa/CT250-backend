@@ -81,6 +81,8 @@ export const getRevenueByTime = async (req, res) => {
     // Chuyển đổi startDate và endDate thành đối tượng Date
     const start = new Date(startDate);
     const end = new Date(endDate);
+    start.setDate(start.getDate() + 1);
+    end.setDate(end.getDate() + 1);
     end.setHours(23, 59, 59, 999); // Đặt thời gian kết thúc vào cuối ngày
 
     // Tạo một mảng chứa tất cả các ngày trong khoảng thời gian từ startDate đến endDate
@@ -139,14 +141,20 @@ export const getRevenueByTime = async (req, res) => {
       },
     ]);
 
-    // Tạo dữ liệu đầy đủ cho tất cả các ngày
     const fullData = daysArray.map((day) => {
+      const formattedDay = new Intl.DateTimeFormat('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(new Date(day));
+
       const dayData = revenueData.find((data) => data.orderDate === day);
+
       return {
-        orderDate: day,
-        totalRevenue: dayData ? dayData.totalRevenue : 0, // Nếu không có doanh thu thì trả về 0
-        paidRevenue: dayData ? dayData.paidRevenue : 0, // Nếu không có doanh thu đã thanh toán thì trả về 0
-        unpaidRevenue: dayData ? dayData.unpaidRevenue : 0, // Nếu không có doanh thu chưa thanh toán thì trả về 0
+        time: formattedDay, // Định dạng ngày, tháng, năm
+        totalRevenue: dayData ? dayData.totalRevenue : 0,
+        paidRevenue: dayData ? dayData.paidRevenue : 0,
+        unpaidRevenue: dayData ? dayData.unpaidRevenue : 0,
       };
     });
 
@@ -216,25 +224,39 @@ export const getRevenueByYear = async (req, res) => {
       },
     ]);
 
+    const monthNames = [
+      'Tháng 1',
+      'Tháng 2',
+      'Tháng 3',
+      'Tháng 4',
+      'Tháng 5',
+      'Tháng 6',
+      'Tháng 7',
+      'Tháng 8',
+      'Tháng 9',
+      'Tháng 10',
+      'Tháng 11',
+      'Tháng 12',
+    ];
+
+    // Gộp dữ liệu từ defaultRevenueData và revenueDataFromDB thành mảng kết quả cuối cùng
     const revenueData = defaultRevenueData.map((defaultMonth) => {
       const monthData = revenueDataFromDB.find(
         (dbMonth) => dbMonth.month === defaultMonth.month
       );
-      return monthData || defaultMonth; // Nếu không có dữ liệu từ DB, trả về giá trị mặc định
-    });
+      const mergedData = monthData || defaultMonth; // Nếu không có dữ liệu từ DB, trả về giá trị mặc định
 
-    // Nhóm các loại doanh thu thành mảng riêng biệt
-    const totalRevenueData = revenueData.map((data) => data.totalRevenue);
-    const paidRevenueData = revenueData.map((data) => data.paidRevenue);
-    const unpaidRevenueData = revenueData.map((data) => data.unpaidRevenue);
+      return {
+        time: monthNames[defaultMonth.month - 1], // Gắn tên tháng thay vì số
+        totalRevenue: mergedData.totalRevenue,
+        paidRevenue: mergedData.paidRevenue,
+        unpaidRevenue: mergedData.unpaidRevenue,
+      };
+    });
 
     res.status(200).json({
       message: `Thống kê doanh thu năm ${currentYear}`,
-      revenueData: {
-        totalRevenueData,
-        paidRevenueData,
-        unpaidRevenueData,
-      },
+      data: revenueData, // Trả về dữ liệu chung 1 mảng
     });
   } catch (error) {
     console.error('Lỗi khi lấy thống kê doanh thu:', error);
@@ -249,16 +271,16 @@ export const getRevenueForAllYears = async (req, res) => {
       ...new Set(dates.map((date) => new Date(date).getFullYear())),
     ]);
 
-    const revenueResults = [];
+    const data = [];
 
     // Lặp qua từng năm và tính doanh thu tổng thể
-    for (const year of years) {
+    for (const time of years) {
       const revenueDataFromDB = await Order.aggregate([
         {
           $match: {
             orderDate: {
-              $gte: new Date(`${year}-01-01`),
-              $lte: new Date(`${year}-12-31T23:59:59`),
+              $gte: new Date(`${time}-01-01`),
+              $lte: new Date(`${time}-12-31T23:59:59`),
             },
           },
         },
@@ -289,8 +311,8 @@ export const getRevenueForAllYears = async (req, res) => {
         revenueDataFromDB.length > 0 ? revenueDataFromDB[0].unpaidRevenue : 0;
 
       // Lưu kết quả cho từng năm
-      revenueResults.push({
-        year,
+      data.push({
+        time,
         totalRevenue,
         paidRevenue,
         unpaidRevenue,
@@ -299,7 +321,7 @@ export const getRevenueForAllYears = async (req, res) => {
 
     res.status(200).json({
       message: 'Thống kê doanh thu tổng thể theo năm thành công.',
-      revenueResults,
+      data,
     });
   } catch (error) {
     console.error('Lỗi khi lấy thống kê doanh thu:', error);
