@@ -144,7 +144,7 @@ export const deleteService = async (req, res) => {
             });
         }
 
-        const service = await Service.findById(serviceId);
+        const service = await Service.findByIdAndDelete(serviceId);
 
         if (!service) {
             return res.status(404).json({
@@ -152,10 +152,8 @@ export const deleteService = async (req, res) => {
             });
         }
 
-        await service.delete();
-
         res.status(200).json({
-            data: service,
+            message: 'Promotion deleted successfully!',
             error: false,
         });
     } catch (error) {

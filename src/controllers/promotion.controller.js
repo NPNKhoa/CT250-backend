@@ -14,8 +14,8 @@ export const getAllPromotions = async (req, res) => {
     }
 
     const promotionQuery = Promotion.find(query)
-      .populate('productIds', 'productName price -_id')
-      .populate('serviceIds', 'serviceName servicePrice -_id');
+      .populate('productIds', 'productName price')
+      .populate('serviceIds', 'serviceName servicePrice');
 
     if (parseInt(limit) !== -1) {
       promotionQuery.skip((page - 1) * limit).limit(parseInt(limit));
@@ -59,8 +59,8 @@ export const getPromotionById = async (req, res) => {
     }
 
     const promotion = await Promotion.findById(promotionId)
-      .populate('productIds', 'productName price -_id')
-      .populate('serviceIds', 'serviceName servicePrice -_id');
+      .populate('productIds', 'productName price')
+      .populate('serviceIds', 'serviceName servicePrice');
 
     if (!promotion) {
       return res.status(404).json({
@@ -110,6 +110,8 @@ export const addPromotion = async (req, res) => {
     }
 
     const existingPromotion = await Promotion.findOne({
+      productIds,
+      serviceIds,
       promotionStartDate: startDate,
       promotionExpiredDate: expiredDate,
     });
@@ -127,8 +129,12 @@ export const addPromotion = async (req, res) => {
       serviceIds,
     });
 
+    const populatedPromotion = await Promotion.findById(newPromotion._id)
+      .populate('productIds', 'productName price')
+      .populate('serviceIds', 'serviceName servicePrice');
+
     res.status(201).json({
-      data: newPromotion,
+      data: populatedPromotion,
       error: false,
     });
   } catch (error) {
@@ -141,52 +147,58 @@ export const updatePromotion = async (req, res) => {
     const { id: promotionId } = req.params;
 
     if (!promotionId || !isValidObjectId(promotionId)) {
-      return res.status(400).json({
-        error: 'Invalid Id',
-      });
+      return res.status(400).json({ error: 'Invalid Id' });
     }
 
-    const { promotionName } = req.body;
+    const { promotionStartDate, promotionExpiredDate, productIds = [], serviceIds = [] } = req.body;
 
-    if (!promotionName) {
-      return res.status(400).json({
-        error: 'Missing required field',
-      });
+    if (!promotionStartDate || !promotionExpiredDate) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const startDate = parseISO(promotionStartDate);
+    const expiredDate = parseISO(promotionExpiredDate);
+
+    if (!isValid(startDate) || !isValid(expiredDate)) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
+
+    if (!isFuture(expiredDate)) {
+      return res.status(400).json({ error: 'Promotion expiration date must be a future date' });
     }
 
     const existingPromotion = await Promotion.findOne({
       _id: { $ne: promotionId },
-      promotionName,
+      productIds,
+      serviceIds,
+      promotionStartDate: startDate,
+      promotionExpiredDate: expiredDate,
     });
 
     if (existingPromotion) {
-      return res.status(409).json({
-        error: 'This promotion is already exist!',
-      });
+      return res.status(409).json({ error: 'This promotion already exists!' });
     }
 
     const updatedPromotion = await Promotion.findByIdAndUpdate(
       promotionId,
-      {
-        promotionName,
-      },
+      { productIds, serviceIds, promotionStartDate: startDate, promotionExpiredDate: expiredDate },
       { new: true, runValidators: true }
     );
 
     if (!updatedPromotion) {
-      return res.status(404).json({
-        error: 'Promotion not found',
-      });
+      return res.status(404).json({ error: 'Promotion not found' });
     }
 
-    res.status(200).json({
-      data: updatedPromotion,
-      error: false,
-    });
+    const populatedPromotion = await Promotion.findById(updatedPromotion._id)
+      .populate('productIds', 'productName price')
+      .populate('serviceIds', 'serviceName servicePrice');
+
+    res.status(200).json({ data: populatedPromotion, error: false });
   } catch (error) {
     logError(error, res);
   }
 };
+
 
 export const deletePromotion = async (req, res) => {
   try {
