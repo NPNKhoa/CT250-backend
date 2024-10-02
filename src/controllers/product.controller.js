@@ -242,7 +242,7 @@ export const addProduct = async (req, res) => {
         error: payload,
       });
     }
-    
+
     // const productImagePath = req?.files?.map((file) => file.path);
     payload.productImagePath = payload.productImagePath || (req.files ? req.files.map((file) => file.path) : []);
 
@@ -257,8 +257,15 @@ export const addProduct = async (req, res) => {
 
     const newProduct = await Product.create(productInfo);
 
+    const populatedProduct = await Product.findById(newProduct._id)
+    .populate('productBrand')
+    .populate('productType')
+    .populate('discount')
+    .populate('promotion')
+    .populate('technicalSpecification.specificationName');
+
     res.status(201).json({
-      data: newProduct,
+      data: populatedProduct,
       error: false,
     });
   } catch (error) {
