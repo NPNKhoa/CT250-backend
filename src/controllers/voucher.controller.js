@@ -329,8 +329,6 @@ export const collectVoucher = async (req, res) => {
   try {
     const { userId } = req.userId;
 
-    console.log(req.userId);
-
     if (!userId) {
       return res.status(400).json({
         error: 'Missing userId',

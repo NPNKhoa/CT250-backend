@@ -1,6 +1,6 @@
 import { Cart, CartDetail } from '../models/cart.model.js';
 import { Order } from '../models/order.model.js';
-import { Voucher } from '../models/voucher.model.js';
+import { UserVoucher, Voucher } from '../models/voucher.model.js';
 
 export const createOrderService = async ({
   userId,
@@ -109,7 +109,11 @@ export const createOrderService = async ({
   }
 
   newOrder.totalPrice = totalPrice - discountPrice + newOrder.shippingFee;
-  console.log(newOrder.totalPrice);
+
+  await UserVoucher.findOneAndDelete({
+    userId,
+    voucherId,
+  });
 
   await newOrder.save();
 
