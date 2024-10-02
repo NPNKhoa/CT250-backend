@@ -209,6 +209,14 @@ export const getOrderByUser = async (req, res) => {
       query.orderStatus = orderStatus;
     }
 
+    let sortOptions = {};
+
+    if (isLatest === 'latest') {
+      sortOptions = { createdAt: -1 };
+    } else {
+      sortOptions = { createdAt: 1 };
+    }
+
     const order = await Order.find(query)
       .populate('user', 'fullname')
       .populate('shippingAddress', '-isDefault -phone')
@@ -225,6 +233,7 @@ export const getOrderByUser = async (req, res) => {
         path: 'orderStatus',
         select: 'orderStatus',
       })
+      .sort(sortOptions)
       .skip((pageNumber - 1) * limitNumber)
       .limit(limitNumber);
 
@@ -237,10 +246,8 @@ export const getOrderByUser = async (req, res) => {
     const totalDocs = await Order.countDocuments({ user: userId });
     const totalPages = Math.ceil(totalDocs / limitNumber);
 
-    const responseOrder = isLatest === 'latest' ? order.reverse() : order;
-
     res.status(200).json({
-      data: responseOrder,
+      data: order,
       meta: {
         totalDocs,
         totalPages,
