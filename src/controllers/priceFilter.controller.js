@@ -37,14 +37,14 @@ export const createPriceFilter = async (req, res) => {
       });
     }
 
-    if (toPrice && (isNaN(toPrice) || toPrice <= fromPrice)) {
+    if (toPrice && (isNaN(toPrice) || toPrice < fromPrice)) {
       return res.status(400).json({
-        error: 'To Price must be a number greater than From Price',
+        error: 'To Price must be a number greater than or equal From Price',
       });
     }
 
     const existingPriceFilter = await PriceFilter.findOne({
-      $or: [{ fromPrice }, { toPrice }],
+      $and: [{ fromPrice }, { toPrice }],
     });
 
     if (existingPriceFilter) {
@@ -56,7 +56,7 @@ export const createPriceFilter = async (req, res) => {
     const overlappingFilter = await PriceFilter.findOne({
       $or: [
         {
-          fromPrice: { $lt: toPrice || Infinity },
+          fromPrice: { $lt: toPrice },
           toPrice: { $gt: fromPrice },
         },
       ],
@@ -70,10 +70,10 @@ export const createPriceFilter = async (req, res) => {
 
     const newPriceFilter = await PriceFilter.create({
       fromPrice,
-      toPrice: toPrice ? toPrice : Infinity,
+      toPrice: toPrice,
     });
 
-    const systemConfig = await SystemConfig.findOne();
+    const systemConfig = await SystemConfig.findOne({ isChoose: true });
 
     if (systemConfig) {
       systemConfig.shopPriceFilter.push(newPriceFilter._id);
