@@ -323,9 +323,6 @@ export const deleteVoucher = async (req, res) => {
 };
 
 export const collectVoucher = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { userId } = req.userId;
 
@@ -341,11 +338,11 @@ export const collectVoucher = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findById(userId).session(session);
+    const existingUser = await User.findById(userId);
 
     if (!existingUser) {
       return res.status(404).json({
-        error: 'Not found user',
+        error: 'User not found',
       });
     }
 
@@ -363,11 +360,11 @@ export const collectVoucher = async (req, res) => {
       });
     }
 
-    const existingVoucher = await Voucher.findById(voucherId).session(session);
+    const existingVoucher = await Voucher.findById(voucherId);
 
     if (!existingVoucher) {
       return res.status(404).json({
-        error: 'Not found voucher',
+        error: 'Voucher not found',
       });
     }
 
@@ -382,50 +379,40 @@ export const collectVoucher = async (req, res) => {
       existingVoucher.maxUsage <= existingVoucher.collectedCount
     ) {
       return res.status(400).json({
-        error: 'Voucher reach max usage',
+        error: 'Voucher has reached maximum usage',
       });
     }
 
     const userCollected = await UserVoucher.findOne({
       userId,
       voucherId,
-    }).session(session);
+    });
 
     if (userCollected) {
       return res.status(409).json({
-        error: 'Already collected',
+        error: 'Voucher already collected by this user',
       });
     }
 
     const updatedVoucher = await Voucher.findOneAndUpdate(
       { _id: voucherId, collectedCount: { $lt: existingVoucher.maxUsage } },
       { $inc: { collectedCount: 1 } },
-      { new: true, session }
+      { new: true }
     );
 
     if (!updatedVoucher) {
-      res.status(400).json({
-        error: 'Voucher getting max count',
+      return res.status(400).json({
+        error: 'Voucher has reached maximum count',
       });
     }
 
-    const newUserVoucher = await UserVoucher.create(
-      [
-        {
-          userId,
-          voucherId,
-          collectedAt: Date.now(),
-        },
-      ],
-      { session }
-    );
+    const newUserVoucher = await UserVoucher.create({
+      userId,
+      voucherId,
+      collectedAt: Date.now(),
+    });
 
-    await session.commitTransaction();
-    session.endSession();
-
-    const populatedUserVoucher = await UserVoucher.findById(
-      newUserVoucher[0]._id
-    )
+    const populatedUserVoucher = await UserVoucher.findById(newUserVoucher._id)
       .populate({
         path: 'userId',
         model: 'User',
@@ -438,13 +425,11 @@ export const collectVoucher = async (req, res) => {
           'voucherCode voucherName discountPercent maxPriceDiscount startDate expiredDate maxUsage',
       });
 
-    res.status(200).json({
+    return res.status(200).json({
       data: populatedUserVoucher,
       error: false,
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     logError(error, res);
   }
 };
