@@ -23,16 +23,18 @@ export const createOrderService = async ({
 
   const existingVoucher = await Voucher.findById(voucherId);
 
-  if (!existingVoucher) {
-    return res.status(404).json({
-      error: 'Not found voucher',
-    });
-  }
+  if (voucherId) {
+    if (!existingVoucher) {
+      return res.status(404).json({
+        error: 'Not found voucher',
+      });
+    }
 
-  if (existingVoucher.expiredDate < new Date()) {
-    return res.status(400).json({
-      error: 'Voucher expired!',
-    });
+    if (existingVoucher.expiredDate < new Date()) {
+      return res.status(400).json({
+        error: 'Voucher expired!',
+      });
+    }
   }
 
   const existingCartDetail = await CartDetail.find({
@@ -102,9 +104,14 @@ export const createOrderService = async ({
     0
   );
 
-  let discountPrice = (totalPrice * existingVoucher.discountPercent) / 100;
+  let discountPrice = existingVoucher
+    ? (totalPrice * existingVoucher.discountPercent) / 100
+    : 0;
 
-  if (discountPrice > existingVoucher.maxPriceDiscount * 1000) {
+  if (
+    existingVoucher &&
+    discountPrice > existingVoucher.maxPriceDiscount * 1000
+  ) {
     discountPrice = existingVoucher.maxPriceDiscount * 1000;
   }
 
