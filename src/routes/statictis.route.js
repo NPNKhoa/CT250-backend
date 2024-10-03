@@ -9,11 +9,16 @@ import {
   getRevenueForAllYears,
   getTotalOrders,
   getTotalOrdersByMonth,
+  getTotalOrdersPerMonthByYear,
+  getTotalOrdersByDateRange,
+  getTotalOrdersPerYear,
   getTotalUsers,
   getTotalUsersByMonth,
   getQuantityPerProductType,
   getTotalSoldPerMonth,
   getLatestOrders,
+  getProductTypeSalesPerYear,
+  getProductTypeSalesPerYears,
 } from '../controllers/statictis.controller.js';
 const router = express.Router();
 
@@ -25,11 +30,17 @@ router.get('/totalrevenueallyears', getRevenueForAllYears);
 
 router.get('/totalorders', getTotalOrders);
 router.get('/totalordersbymonth', getTotalOrdersByMonth);
+router.get('/totalordersperyear', getTotalOrdersPerYear);
+router.get('/totalordersallyear', getTotalOrdersPerMonthByYear);
+router.get('/totalorderbytime', getTotalOrdersByDateRange);
 
 router.get('/totalusers', getTotalUsers);
 router.get('/totalusersbymonth', getTotalUsersByMonth);
 
 router.get('/quantityperproducttype', getQuantityPerProductType);
+router.get('/quantityperyear', getProductTypeSalesPerYear);
+router.get('/quantityallyear', getProductTypeSalesPerYears);
+
 router.get('/totalsoldpermonth', getTotalSoldPerMonth);
 router.get('/lastedorders', getLatestOrders);
 
