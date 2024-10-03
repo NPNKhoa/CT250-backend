@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 export const connectDb = async () => {
   const primaryUri = process.env.MONGO_URI || '';
-  const fallbackUri = 'mongodb://localhost:27017/badmintonshop';
+  const fallbackUri = 'mongodb://127.0.0.1:27017/badmintonshop';
 
   const connect = async (uri) => {
     try {
