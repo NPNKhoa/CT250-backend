@@ -2,6 +2,7 @@ import { Order } from '../models/order.model.js';
 import { Product } from '../models/product.model.js';
 import { User } from '../models/user.model.js';
 import logError from '../utils/logError.js';
+import { OrderStatus } from '../models/order.model.js';
 
 export const getTotalRevenue = async (req, res) => {
   try {
@@ -367,6 +368,195 @@ export const getTotalOrdersByMonth = async (req, res) => {
   }
 };
 
+// Thống kê số lượng đơn hàng theo tháng trong năm
+export const getTotalOrdersPerYear = async (req, res) => {
+  try {
+    const { year } = req.query;
+
+    // Kiểm tra năm truyền vào, nếu không có thì sử dụng năm hiện tại
+    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+
+    // Các trạng thái đơn hàng cần thống kê
+    const orderStatus = await OrderStatus.find();
+
+    const orderStatuses = orderStatus.map((status) => ({
+      _id: status._id.toString(), // Chuyển đổi ObjectId thành chuỗi
+      orderStatus: status.orderStatus,
+    }));
+
+    // Khởi tạo mảng để lưu trữ thống kê theo tháng
+    const monthlyStatistics = Array.from({ length: 12 }, () => ({}));
+
+    // Lặp qua từng trạng thái đơn hàng
+    await Promise.all(
+      orderStatuses.map(async (status) => {
+        // Lặp qua từng tháng trong năm
+        for (let month = 0; month < 12; month++) {
+          const startOfMonth = new Date(currentYear, month, 1);
+          const endOfMonth = new Date(currentYear, month + 1, 0, 23, 59, 59);
+
+          // Đếm số đơn hàng theo trạng thái và thời gian
+          const count = await Order.countDocuments({
+            orderStatus: status._id,
+            orderDate: {
+              $gte: startOfMonth,
+              $lt: endOfMonth,
+            },
+          });
+
+          // Gán số lượng vào đối tượng tương ứng của tháng
+          monthlyStatistics[month][status.orderStatus] = count;
+        }
+      })
+    );
+
+    // Tạo mảng kết quả để trả về
+    const results = monthlyStatistics.map((stats, month) => ({
+      month: month + 1, // Tháng (1-12)
+      ...stats, // Gộp các trạng thái vào đối tượng kết quả
+    }));
+
+    res.status(200).json({
+      message: `Tổng số đơn hàng theo trạng thái trong năm ${currentYear}`,
+      statistics: results,
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy thống kê số lượng đơn hàng:', error);
+    res.status(500).json({ message: 'Có lỗi xảy ra', error });
+  }
+};
+
+// Thống kê số lượng đơn hàng theo trạng thái cho từng năm
+export const getTotalOrdersPerMonthByYear = async (req, res) => {
+  try {
+    // Lấy danh sách tất cả các năm có trong collection `orders`
+    const years = await Order.distinct('orderDate').then((dates) => [
+      ...new Set(dates.map((date) => new Date(date).getFullYear())),
+    ]);
+
+    const orderStatus = await OrderStatus.find();
+
+    const orderStatuses = orderStatus.map((status) => ({
+      _id: status._id.toString(), // Chuyển đổi ObjectId thành chuỗi
+      orderStatus: status.orderStatus,
+    }));
+
+    const results = [];
+
+    // Lặp qua từng năm và tính tổng số đơn hàng theo trạng thái
+    for (const year of years) {
+      const yearStats = { year }; // Khởi tạo đối tượng chứa thống kê cho năm
+      await Promise.all(
+        orderStatuses.map(async (status) => {
+          // Đếm tổng số đơn hàng theo trạng thái cho năm
+          const totalOrders = await Order.countDocuments({
+            orderStatus: status._id,
+            orderDate: {
+              $gte: new Date(`${year}-01-01`),
+              $lte: new Date(`${year}-12-31T23:59:59`),
+            },
+          });
+
+          // Gán số lượng vào đối tượng yearStats
+          yearStats[status.orderStatus] = totalOrders;
+        })
+      );
+      results.push(yearStats); // Thêm kết quả thống kê của năm vào mảng results
+    }
+
+    res.status(200).json({
+      message: 'Tổng số đơn hàng theo trạng thái trong từng năm',
+      statistics: results,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getTotalOrdersByDateRange = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    // Kiểm tra dữ liệu ngày bắt đầu và kết thúc
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ message: 'Cần cung cấp startDate và endDate' });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    start.setDate(start.getDate() + 1);
+    end.setDate(end.getDate() + 1);
+    end.setHours(23, 59, 59, 999);
+
+    // Các trạng thái đơn hàng cần thống kê
+    const orderStatus = await OrderStatus.find();
+
+    const orderStatuses = orderStatus.map((status) => ({
+      _id: status._id.toString(), // Chuyển đổi ObjectId thành chuỗi
+      orderStatus: status.orderStatus,
+    }));
+
+    // Khởi tạo mảng để lưu trữ thống kê cho từng ngày
+    const dailyStatistics = {};
+
+    // Khởi tạo các ngày trong khoảng thời gian
+    const currentDate = new Date(start);
+    while (currentDate <= end) {
+      // Khởi tạo đối tượng chứa số lượng đơn hàng cho mỗi trạng thái
+      const statusCount = {};
+
+      // Lặp qua từng trạng thái trong orderStatuses và khởi tạo giá trị 0
+      orderStatuses.forEach((status) => {
+        statusCount[status.orderStatus] = 0;
+      });
+
+      // Gán đối tượng statusCount vào dailyStatistics theo ngày
+      dailyStatistics[currentDate.toISOString().split('T')[0]] = statusCount;
+
+      // Tiến tới ngày tiếp theo
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Lặp qua từng trạng thái đơn hàng
+    await Promise.all(
+      orderStatuses.map(async (status) => {
+        // Đếm số đơn hàng theo trạng thái và thời gian
+        const orders = await Order.find({
+          orderStatus: status._id,
+          orderDate: {
+            $gte: start,
+            $lte: end,
+          },
+        });
+
+        // Cập nhật số lượng đơn hàng cho từng ngày
+        orders.forEach((order) => {
+          const orderDate = order.orderDate.toISOString().split('T')[0];
+          if (dailyStatistics[orderDate]) {
+            dailyStatistics[orderDate][status.orderStatus] += 1;
+          }
+        });
+      })
+    );
+
+    // Tạo mảng kết quả để trả về
+    const results = Object.keys(dailyStatistics).map((date) => ({
+      date,
+      ...dailyStatistics[date],
+    }));
+
+    res.status(200).json({
+      message: `Tổng số đơn hàng từ ${startDate} đến ${endDate}`,
+      statistics: results,
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy thống kê số lượng đơn hàng:', error);
+    res.status(500).json({ message: 'Có lỗi xảy ra', error });
+  }
+};
+
 export const getTotalUsers = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments({});
@@ -496,6 +686,279 @@ export const getQuantityPerProductType = async (req, res) => {
 
     if (!result || result.length === 0) {
       return res.status(404).json({ message: 'Không có dữ liệu.' });
+    }
+
+    res.status(200).json({
+      data: result,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getProductTypeSalesPerYear = async (req, res) => {
+  try {
+    const { year } = req.query; // Nhận năm từ query (ví dụ: ?year=2024)
+
+    if (!year) {
+      return res.status(400).json({ message: 'Vui lòng cung cấp năm.' });
+    }
+
+    const result = await Order.aggregate([
+      {
+        $unwind: '$orderDetail',
+      },
+      {
+        $lookup: {
+          from: 'cartdetails',
+          localField: 'orderDetail',
+          foreignField: '_id',
+          as: 'cartDetail',
+        },
+      },
+      {
+        $unwind: '$cartDetail',
+      },
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'cartDetail.product',
+          foreignField: '_id',
+          as: 'product',
+        },
+      },
+      {
+        $unwind: '$product',
+      },
+      {
+        $lookup: {
+          from: 'producttypes',
+          localField: 'product.productType',
+          foreignField: '_id',
+          as: 'productType',
+        },
+      },
+      {
+        $unwind: '$productType',
+      },
+      {
+        $addFields: {
+          month: { $month: '$createdAt' },
+          year: { $year: '$createdAt' },
+        },
+      },
+      {
+        // Lọc dữ liệu theo năm được cung cấp
+        $match: {
+          year: parseInt(year), // So sánh với năm từ query
+        },
+      },
+      {
+        $group: {
+          _id: {
+            month: '$month',
+            year: '$year',
+            productType: '$productType.productTypeName',
+          },
+          totalSold: { $sum: '$cartDetail.quantity' },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            productType: '$_id.productType',
+          },
+          monthlySales: {
+            $push: {
+              month: '$_id.month',
+              totalSold: '$totalSold',
+            },
+          },
+        },
+      },
+      {
+        $sort: {
+          '_id.productType': 1,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          productType: '$_id.productType',
+          monthlySales: 1,
+        },
+      },
+    ]);
+
+    // Tạo mảng cho các tháng trong năm
+    const months = Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      totalSold: 0,
+    }));
+
+    // Tạo mảng cho các loại sản phẩm với doanh số cho từng tháng
+    const productTypeSales = result.map((item) => {
+      const salesForMonth = months.map((month) => {
+        // Tìm tổng doanh số cho từng tháng
+        const monthData = item.monthlySales.find(
+          (ms) => ms.month === month.month
+        );
+        return {
+          month: month.month,
+          totalSold: monthData ? monthData.totalSold : 0, // Nếu không có dữ liệu, set về 0
+        };
+      });
+
+      return {
+        productType: item.productType,
+        monthlySales: salesForMonth,
+      };
+    });
+
+    // Nếu không có dữ liệu cho loại sản phẩm nào, thêm vào với doanh số = 0 cho từng tháng
+    const defaultProductTypes = [
+      'Túi vợt cầu lông',
+      'Vợt cầu lông',
+      'Balo cầu lông',
+      // Thêm các productType khác nếu cần
+    ];
+
+    defaultProductTypes.forEach((productType) => {
+      const found = productTypeSales.find(
+        (pt) => pt.productType === productType
+      );
+      if (!found) {
+        productTypeSales.push({
+          productType,
+          monthlySales: months.map((month) => ({
+            month: month.month,
+            totalSold: 0,
+          })),
+        });
+      }
+    });
+
+    res.status(200).json({
+      data: productTypeSales,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getProductTypeSalesPerYears = async (req, res) => {
+  try {
+    // Nhận tất cả các năm trong dữ liệu
+    const years = await Order.aggregate([
+      {
+        $addFields: {
+          year: { $year: '$createdAt' },
+        },
+      },
+      {
+        $group: {
+          _id: '$year',
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          year: '$_id',
+        },
+      },
+    ]);
+
+    // Nếu không có năm nào được tìm thấy
+    if (!years || years.length === 0) {
+      return res.status(404).json({ message: 'Không có dữ liệu năm nào.' });
+    }
+
+    // Thống kê doanh số cho mỗi năm
+    const result = await Order.aggregate([
+      {
+        $unwind: '$orderDetail',
+      },
+      {
+        $lookup: {
+          from: 'cartdetails',
+          localField: 'orderDetail',
+          foreignField: '_id',
+          as: 'cartDetail',
+        },
+      },
+      {
+        $unwind: '$cartDetail',
+      },
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'cartDetail.product',
+          foreignField: '_id',
+          as: 'product',
+        },
+      },
+      {
+        $unwind: '$product',
+      },
+      {
+        $lookup: {
+          from: 'producttypes',
+          localField: 'product.productType',
+          foreignField: '_id',
+          as: 'productType',
+        },
+      },
+      {
+        $unwind: '$productType',
+      },
+      {
+        $addFields: {
+          year: { $year: '$createdAt' },
+        },
+      },
+      {
+        // Nhóm dữ liệu theo năm và loại sản phẩm
+        $group: {
+          _id: {
+            year: '$year',
+            productType: '$productType.productTypeName',
+          },
+          totalSold: { $sum: '$cartDetail.quantity' },
+        },
+      },
+      {
+        // Nhóm lại theo năm
+        $group: {
+          _id: '$_id.year',
+          productTypes: {
+            $push: {
+              productType: '$_id.productType',
+              totalSold: '$totalSold',
+            },
+          },
+        },
+      },
+      {
+        $sort: {
+          _id: 1,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          year: '$_id',
+          productTypes: 1,
+        },
+      },
+    ]);
+
+    // Nếu không có dữ liệu thống kê nào
+    if (!result || result.length === 0) {
+      return res
+        .status(404)
+        .json({ message: 'Không có dữ liệu bán hàng nào.' });
     }
 
     res.status(200).json({
