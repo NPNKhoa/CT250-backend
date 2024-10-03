@@ -21,9 +21,9 @@ export const createOrderService = async ({
     };
   }
 
-  if (voucherId) {
-    const existingVoucher = await Voucher.findById(voucherId);
+  const existingVoucher = await Voucher.findById(voucherId);
 
+  if (voucherId) {
     if (!existingVoucher) {
       return res.status(404).json({
         error: 'Not found voucher',
@@ -104,9 +104,14 @@ export const createOrderService = async ({
     0
   );
 
-  let discountPrice = (totalPrice * existingVoucher.discountPercent) / 100;
+  let discountPrice = existingVoucher
+    ? (totalPrice * existingVoucher.discountPercent) / 100
+    : 0;
 
-  if (discountPrice > existingVoucher.maxPriceDiscount * 1000) {
+  if (
+    existingVoucher &&
+    discountPrice > existingVoucher.maxPriceDiscount * 1000
+  ) {
     discountPrice = existingVoucher.maxPriceDiscount * 1000;
   }
 
