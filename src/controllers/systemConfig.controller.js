@@ -1,4 +1,4 @@
-import { SystemConfig } from '../models/systemConfig.model.js';
+import { PriceFilter, SystemConfig } from '../models/systemConfig.model.js';
 import logError from '../utils/logError.js';
 
 export const createConfig = async (req, res) => {
@@ -84,6 +84,16 @@ export const updateConfig = async (req, res) => {
       bannerImgPath = prevConfig.bannerImgPath;
     }
 
+    const currentPriceFilters = await PriceFilter.find();
+
+    let shopPriceFilter =
+      Array.isArray(currentPriceFilters) &&
+      currentPriceFilters.map((filter) => filter._id);
+
+    if (Array.isArray(shopPriceFilter) && shopPriceFilter.length === 0) {
+      shopPriceFilter = prevConfig.shopPriceFilter;
+    }
+
     const newConfig = await SystemConfig.create({
       shopName: shopName || prevConfig.shopName,
       shopEmail: shopEmail || prevConfig.shopEmail,
@@ -91,6 +101,7 @@ export const updateConfig = async (req, res) => {
       shopLogoImgPath: shopLogoImgPath || prevConfig.shopLogoImgPath,
       bannerImgPath: bannerImgPath || prevConfig.bannerImgPath,
       shopIntroduction: shopIntroduction || prevConfig.shopIntroduction,
+      shopPriceFilter,
       isChoose: true,
     });
 
