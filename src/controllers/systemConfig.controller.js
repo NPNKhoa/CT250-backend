@@ -67,13 +67,22 @@ export const updateConfig = async (req, res) => {
 
     const shopLogoImgPath = req?.files?.shopLogoImgPath?.[0]?.path;
 
-    const bannerImgPath = req?.files?.bannerImgPath?.map((file) => file.path);
+    let bannerImgPath;
 
     const prevConfig = await SystemConfig.findOne({
       isChoose: true,
     });
 
-    console.log(req.body);
+    if (req?.files?.bannerImgPath) {
+      bannerImgPath = req?.files?.bannerImgPath?.map((file) => file.path);
+    } else if (
+      Array.isArray(req.body.bannerImgPath) &&
+      req.body.bannerImgPath.length !== 0
+    ) {
+      bannerImgPath = req.body.bannerImgPath;
+    } else {
+      bannerImgPath = prevConfig.bannerImgPath;
+    }
 
     const newConfig = await SystemConfig.create({
       shopName: shopName || prevConfig.shopName,
