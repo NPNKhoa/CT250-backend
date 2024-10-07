@@ -1,269 +1,7 @@
 import { Order } from '../models/order.model.js';
-import { Product } from '../models/product.model.js';
 import { User } from '../models/user.model.js';
 import logError from '../utils/logError.js';
 import { OrderStatus } from '../models/order.model.js';
-
-export const getTotalRevenue = async (req, res) => {
-  try {
-    const totalRevenue = await Order.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: '$totalPrice' },
-        },
-      },
-    ]);
-
-    if (totalRevenue.length === 0) {
-      return res.status(404).json({ message: 'Không có đơn hàng nào.' });
-    }
-
-    res.status(200).json({
-      message: 'Thống kê doanh thu thành công.',
-      totalRevenue: totalRevenue[0].totalRevenue,
-    });
-  } catch (error) {
-    logError(error, res);
-  }
-};
-
-export const getTotalRevenueByMonth = async (req, res) => {
-  try {
-    const { month, year } = req.query;
-    const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
-    const currentYear = year ? parseInt(year) : new Date().getFullYear();
-
-    const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-    const endOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
-
-    const totalRevenue = await Order.aggregate([
-      {
-        $match: {
-          orderDate: {
-            $gte: startOfMonth,
-            $lte: endOfMonth,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: '$totalPrice' },
-        },
-      },
-    ]);
-
-    if (totalRevenue.length === 0) {
-      return res
-        .status(404)
-        .json({ message: 'Không có đơn hàng nào trong tháng.' });
-    }
-
-    res.status(200).json({
-      message: `Thống kê doanh thu tháng ${currentMonth}/${currentYear} thành công.`,
-      totalRevenue: totalRevenue[0].totalRevenue,
-    });
-  } catch (error) {
-    logError(error, res);
-  }
-};
-
-export const getRevenueByTime = async (req, res) => {
-  try {
-    const { startDate, endDate } = req.query;
-
-    if (!startDate || !endDate) {
-      return res
-        .status(400)
-        .json({ message: 'Vui lòng cung cấp ngày bắt đầu và ngày kết thúc.' });
-    }
-
-    // Chuyển đổi startDate và endDate thành đối tượng Date
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    start.setDate(start.getDate() + 1);
-    end.setDate(end.getDate() + 1);
-    end.setHours(23, 59, 59, 999); // Đặt thời gian kết thúc vào cuối ngày
-
-    // Tạo một mảng chứa tất cả các ngày trong khoảng thời gian từ startDate đến endDate
-    const daysArray = [];
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      daysArray.push(new Date(d).toISOString().split('T')[0]); // Chỉ lấy phần ngày (YYYY-MM-DD)
-    }
-
-    // Lọc và nhóm các đơn hàng theo ngày, tính doanh thu và phân loại thanh toán
-    const revenueData = await Order.aggregate([
-      {
-        $match: {
-          orderDate: {
-            $gte: start, // Lọc các đơn hàng từ ngày bắt đầu
-            $lte: end, // Lọc đến ngày kết thúc
-          },
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          totalPrice: 1,
-          paymentStatus: 1,
-          // Chuyển orderDate thành định dạng chuỗi ngày (YYYY-MM-DD)
-          orderDate: {
-            $dateToString: { format: '%Y-%m-%d', date: '$orderDate' },
-          },
-        },
-      },
-      {
-        // Nhóm các đơn hàng theo ngày và phân loại doanh thu đã thanh toán và chưa thanh toán
-        $group: {
-          _id: '$orderDate',
-          totalRevenue: { $sum: '$totalPrice' }, // Tính tổng doanh thu của ngày
-          paidRevenue: {
-            $sum: {
-              $cond: [{ $eq: ['$paymentStatus', true] }, '$totalPrice', 0],
-            }, // Doanh thu từ đơn hàng đã thanh toán
-          },
-          unpaidRevenue: {
-            $sum: {
-              $cond: [{ $eq: ['$paymentStatus', false] }, '$totalPrice', 0],
-            }, // Doanh thu từ đơn hàng chưa thanh toán
-          },
-        },
-      },
-      {
-        // Đặt tên lại cho trường `_id` thành `orderDate`
-        $project: {
-          _id: 0,
-          orderDate: '$_id',
-          totalRevenue: 1,
-          paidRevenue: 1, // Doanh thu từ đơn hàng đã thanh toán
-          unpaidRevenue: 1, // Doanh thu từ đơn hàng chưa thanh toán
-        },
-      },
-    ]);
-
-    const fullData = daysArray.map((day) => {
-      const formattedDay = new Intl.DateTimeFormat('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      }).format(new Date(day));
-
-      const dayData = revenueData.find((data) => data.orderDate === day);
-
-      return {
-        time: formattedDay, // Định dạng ngày, tháng, năm
-        totalRevenue: dayData ? dayData.totalRevenue : 0,
-        paidRevenue: dayData ? dayData.paidRevenue : 0,
-        unpaidRevenue: dayData ? dayData.unpaidRevenue : 0,
-      };
-    });
-
-    // Trả về kết quả
-    return res.status(200).json({
-      message: 'Thống kê doanh thu và trạng thái thanh toán thành công',
-      data: fullData,
-      startDate,
-      endDate,
-    });
-  } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ message: 'Đã có lỗi xảy ra, vui lòng thử lại sau.' });
-  }
-};
-
-export const getRevenueByYear = async (req, res) => {
-  try {
-    const { year } = req.query;
-    const currentYear = year ? parseInt(year) : new Date().getFullYear();
-
-    const defaultRevenueData = Array.from({ length: 12 }, (_, index) => ({
-      month: index + 1,
-      totalRevenue: 0,
-      paidRevenue: 0,
-      unpaidRevenue: 0,
-    }));
-
-    const revenueDataFromDB = await Order.aggregate([
-      {
-        $match: {
-          orderDate: {
-            $gte: new Date(`${currentYear}-01-01`),
-            $lte: new Date(`${currentYear}-12-31T23:59:59`),
-          },
-        },
-      },
-      {
-        $group: {
-          _id: { $month: '$orderDate' }, // Nhóm theo tháng
-          totalRevenue: { $sum: '$totalPrice' }, // Tổng doanh thu
-          paidRevenue: {
-            $sum: {
-              $cond: [{ $eq: ['$paymentStatus', true] }, '$totalPrice', 0],
-            },
-          },
-          unpaidRevenue: {
-            $sum: {
-              $cond: [{ $eq: ['$paymentStatus', false] }, '$totalPrice', 0],
-            },
-          },
-        },
-      },
-      {
-        $sort: { _id: 1 },
-      },
-      {
-        $project: {
-          month: '$_id',
-          totalRevenue: 1,
-          paidRevenue: 1,
-          unpaidRevenue: 1,
-          _id: 0,
-        },
-      },
-    ]);
-
-    const monthNames = [
-      'Tháng 1',
-      'Tháng 2',
-      'Tháng 3',
-      'Tháng 4',
-      'Tháng 5',
-      'Tháng 6',
-      'Tháng 7',
-      'Tháng 8',
-      'Tháng 9',
-      'Tháng 10',
-      'Tháng 11',
-      'Tháng 12',
-    ];
-
-    // Gộp dữ liệu từ defaultRevenueData và revenueDataFromDB thành mảng kết quả cuối cùng
-    const revenueData = defaultRevenueData.map((defaultMonth) => {
-      const monthData = revenueDataFromDB.find(
-        (dbMonth) => dbMonth.month === defaultMonth.month
-      );
-      const mergedData = monthData || defaultMonth; // Nếu không có dữ liệu từ DB, trả về giá trị mặc định
-
-      return {
-        time: monthNames[defaultMonth.month - 1], // Gắn tên tháng thay vì số
-        totalRevenue: mergedData.totalRevenue,
-        paidRevenue: mergedData.paidRevenue,
-        unpaidRevenue: mergedData.unpaidRevenue,
-      };
-    });
-
-    res.status(200).json({
-      message: `Thống kê doanh thu năm ${currentYear}`,
-      data: revenueData, // Trả về dữ liệu chung 1 mảng
-    });
-  } catch (error) {
-    console.error('Lỗi khi lấy thống kê doanh thu:', error);
-    res.status(500).json({ message: 'Có lỗi xảy ra', error });
-  }
-};
 
 export const getRevenueForAllYears = async (req, res) => {
   try {
@@ -330,103 +68,6 @@ export const getRevenueForAllYears = async (req, res) => {
   }
 };
 
-export const getTotalOrders = async (req, res) => {
-  try {
-    const totalOrders = await Order.countDocuments({});
-    res.status(200).json({
-      message: 'Tính tổng số đơn hàng thành công.',
-      totalOrders,
-    });
-  } catch (error) {
-    logError(error, res);
-  }
-};
-
-export const getTotalOrdersByMonth = async (req, res) => {
-  try {
-    const { month, year } = req.query;
-
-    const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
-    const currentYear = year ? parseInt(year) : new Date().getFullYear();
-
-    const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-    const endOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
-
-    const totalOrdersByMonth = await Order.countDocuments({
-      orderDate: {
-        $gte: startOfMonth,
-        $lte: endOfMonth,
-      },
-    });
-
-    res.status(200).json({
-      message: `Tổng số đơn hàng tháng ${currentMonth}/${currentYear}`,
-      totalOrdersByMonth,
-    });
-  } catch (error) {
-    logError(error, res);
-  }
-};
-
-// Thống kê số lượng đơn hàng theo tháng trong năm
-export const getTotalOrdersPerYear = async (req, res) => {
-  try {
-    const { year } = req.query;
-
-    // Kiểm tra năm truyền vào, nếu không có thì sử dụng năm hiện tại
-    const currentYear = year ? parseInt(year) : new Date().getFullYear();
-
-    // Các trạng thái đơn hàng cần thống kê
-    const orderStatus = await OrderStatus.find();
-
-    const orderStatuses = orderStatus.map((status) => ({
-      _id: status._id.toString(), // Chuyển đổi ObjectId thành chuỗi
-      orderStatus: status.orderStatus,
-    }));
-
-    // Khởi tạo mảng để lưu trữ thống kê theo tháng
-    const monthlyStatistics = Array.from({ length: 12 }, () => ({}));
-
-    // Lặp qua từng trạng thái đơn hàng
-    await Promise.all(
-      orderStatuses.map(async (status) => {
-        // Lặp qua từng tháng trong năm
-        for (let month = 0; month < 12; month++) {
-          const startOfMonth = new Date(currentYear, month, 1);
-          const endOfMonth = new Date(currentYear, month + 1, 0, 23, 59, 59);
-
-          // Đếm số đơn hàng theo trạng thái và thời gian
-          const count = await Order.countDocuments({
-            orderStatus: status._id,
-            orderDate: {
-              $gte: startOfMonth,
-              $lt: endOfMonth,
-            },
-          });
-
-          // Gán số lượng vào đối tượng tương ứng của tháng
-          monthlyStatistics[month][status.orderStatus] = count;
-        }
-      })
-    );
-
-    // Tạo mảng kết quả để trả về
-    const results = monthlyStatistics.map((stats, month) => ({
-      month: month + 1, // Tháng (1-12)
-      ...stats, // Gộp các trạng thái vào đối tượng kết quả
-    }));
-
-    res.status(200).json({
-      message: `Tổng số đơn hàng theo trạng thái trong năm ${currentYear}`,
-      statistics: results,
-    });
-  } catch (error) {
-    console.error('Lỗi khi lấy thống kê số lượng đơn hàng:', error);
-    res.status(500).json({ message: 'Có lỗi xảy ra', error });
-  }
-};
-
-// Thống kê số lượng đơn hàng theo trạng thái cho từng năm
 export const getTotalOrdersPerMonthByYear = async (req, res) => {
   try {
     // Lấy danh sách tất cả các năm có trong collection `orders`
@@ -473,87 +114,526 @@ export const getTotalOrdersPerMonthByYear = async (req, res) => {
   }
 };
 
-export const getTotalOrdersByDateRange = async (req, res) => {
+export const getStatisticsByDateRange = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    // Kiểm tra dữ liệu ngày bắt đầu và kết thúc
     if (!startDate || !endDate) {
       return res
         .status(400)
-        .json({ message: 'Cần cung cấp startDate và endDate' });
+        .json({ message: 'Vui lòng cung cấp ngày bắt đầu và ngày kết thúc.' });
     }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
     start.setDate(start.getDate() + 1);
     end.setDate(end.getDate() + 1);
-    end.setHours(23, 59, 59, 999);
+    end.setHours(23, 59, 59, 999); // Đặt giờ cuối cùng trong ngày kết thúc
 
-    // Các trạng thái đơn hàng cần thống kê
-    const orderStatus = await OrderStatus.find();
-
-    const orderStatuses = orderStatus.map((status) => ({
-      _id: status._id.toString(), // Chuyển đổi ObjectId thành chuỗi
-      orderStatus: status.orderStatus,
-    }));
-
-    // Khởi tạo mảng để lưu trữ thống kê cho từng ngày
-    const dailyStatistics = {};
-
-    // Khởi tạo các ngày trong khoảng thời gian
-    const currentDate = new Date(start);
-    while (currentDate <= end) {
-      // Khởi tạo đối tượng chứa số lượng đơn hàng cho mỗi trạng thái
-      const statusCount = {};
-
-      // Lặp qua từng trạng thái trong orderStatuses và khởi tạo giá trị 0
-      orderStatuses.forEach((status) => {
-        statusCount[status.orderStatus] = 0;
-      });
-
-      // Gán đối tượng statusCount vào dailyStatistics theo ngày
-      dailyStatistics[currentDate.toISOString().split('T')[0]] = statusCount;
-
-      // Tiến tới ngày tiếp theo
-      currentDate.setDate(currentDate.getDate() + 1);
+    const daysArray = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      daysArray.push(new Date(d).toISOString().split('T')[0]);
     }
 
-    // Lặp qua từng trạng thái đơn hàng
-    await Promise.all(
-      orderStatuses.map(async (status) => {
-        // Đếm số đơn hàng theo trạng thái và thời gian
-        const orders = await Order.find({
-          orderStatus: status._id,
+    // 1. Tính doanh thu và tổng số lượng đơn hàng theo từng ngày
+    const revenueData = await Order.aggregate([
+      {
+        $match: {
           orderDate: {
             $gte: start,
             $lte: end,
           },
-        });
+        },
+      },
+      {
+        $project: {
+          totalPrice: 1,
+          paymentStatus: 1,
+          orderDate: {
+            $dateToString: { format: '%Y-%m-%d', date: '$orderDate' },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: '$orderDate',
+          totalRevenue: { $sum: '$totalPrice' },
+          paidRevenue: {
+            $sum: {
+              $cond: [{ $eq: ['$paymentStatus', true] }, '$totalPrice', 0],
+            },
+          },
+          unpaidRevenue: {
+            $sum: {
+              $cond: [{ $eq: ['$paymentStatus', false] }, '$totalPrice', 0],
+            },
+          },
+          totalOrders: { $sum: 1 },
+        },
+      },
+    ]);
 
-        // Cập nhật số lượng đơn hàng cho từng ngày
-        orders.forEach((order) => {
-          const orderDate = order.orderDate.toISOString().split('T')[0];
-          if (dailyStatistics[orderDate]) {
-            dailyStatistics[orderDate][status.orderStatus] += 1;
-          }
-        });
-      })
+    // 2. Lấy tổng số đơn hàng theo từng trạng thái
+    const orderStatusData = await Order.aggregate([
+      {
+        $match: {
+          orderDate: { $gte: start, $lte: end },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            orderStatus: '$orderStatus',
+            orderDate: {
+              $dateToString: { format: '%Y-%m-%d', date: '$orderDate' },
+            },
+          },
+          totalOrders: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: 'orderstatuses',
+          localField: '_id.orderStatus',
+          foreignField: '_id',
+          as: 'statusInfo',
+        },
+      },
+      {
+        $unwind: '$statusInfo',
+      },
+      {
+        $project: {
+          _id: 0,
+          orderStatus: '$statusInfo.orderStatus',
+          orderDate: '$_id.orderDate', // Thêm trường orderDate vào kết quả
+          totalOrders: 1,
+        },
+      },
+    ]);
+
+    // 3. Tính tổng số lượng sản phẩm bán ra theo loại sản phẩm
+    const productTypeData = await Order.aggregate([
+      {
+        $match: {
+          orderDate: { $gte: start, $lte: end },
+        },
+      },
+      {
+        $unwind: '$orderDetail',
+      },
+      {
+        $lookup: {
+          from: 'cartdetails',
+          localField: 'orderDetail',
+          foreignField: '_id',
+          as: 'cartDetail',
+        },
+      },
+      {
+        $unwind: '$cartDetail',
+      },
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'cartDetail.product',
+          foreignField: '_id',
+          as: 'product',
+        },
+      },
+      {
+        $unwind: '$product',
+      },
+      {
+        $lookup: {
+          from: 'producttypes',
+          localField: 'product.productType',
+          foreignField: '_id',
+          as: 'productType',
+        },
+      },
+      {
+        $unwind: '$productType',
+      },
+      {
+        $group: {
+          _id: {
+            productTypeName: '$productType.productTypeName',
+            orderDate: {
+              $dateToString: { format: '%Y-%m-%d', date: '$orderDate' },
+            },
+          },
+          totalSold: { $sum: '$cartDetail.quantity' },
+        },
+      },
+      {
+        $group: {
+          _id: '$_id.orderDate',
+          productTypes: {
+            $push: {
+              productType: '$_id.productTypeName',
+              totalSold: '$totalSold',
+            },
+          },
+          totalProductsSold: { $sum: '$totalSold' },
+        },
+      },
+    ]);
+
+    // Tính tổng doanh thu và tổng đơn hàng trong toàn bộ khoảng thời gian
+    const totalStatistics = revenueData.reduce(
+      (acc, day) => {
+        acc.totalRevenue += day.totalRevenue;
+        acc.totalOrders += day.totalOrders;
+        return acc;
+      },
+      { totalRevenue: 0, totalOrders: 0 }
     );
 
-    // Tạo mảng kết quả để trả về
-    const results = Object.keys(dailyStatistics).map((date) => ({
-      date,
-      ...dailyStatistics[date],
-    }));
+    // 4. Xây dựng dữ liệu trả về với các thống kê đã yêu cầu
+    const fullData = daysArray.map((day) => {
+      const formattedDay = new Intl.DateTimeFormat('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(new Date(day));
 
-    res.status(200).json({
-      message: `Tổng số đơn hàng từ ${startDate} đến ${endDate}`,
-      statistics: results,
+      // Tìm dữ liệu doanh thu cho ngày đó
+      const dayRevenueData = revenueData.find((data) => data._id === day) || {
+        totalRevenue: 0,
+        paidRevenue: 0,
+        unpaidRevenue: 0,
+        totalOrders: 0,
+      };
+
+      // Tìm dữ liệu thống kê loại sản phẩm cho ngày đó
+      const productTypeStats =
+        productTypeData.find((data) => data._id === day)?.productTypes || [];
+      const totalProductsSold =
+        productTypeData.find((data) => data._id === day)?.totalProductsSold ||
+        0;
+
+      // Nếu không có loại sản phẩm nào thì thêm giá trị mặc định
+      const defaultProductTypes = [
+        { productType: 'Túi vợt cầu lông', totalSold: 0 },
+        { productType: 'Vợt cầu lông', totalSold: 0 },
+        { productType: 'Balo cầu lông', totalSold: 0 },
+      ];
+
+      const finalProductTypes = defaultProductTypes.map((defaultType) => {
+        const actualType = productTypeStats.find(
+          (type) => type.productType === defaultType.productType
+        );
+        return actualType || defaultType; // Nếu không có, giữ giá trị mặc định
+      });
+
+      // Lấy thông tin tổng đơn hàng theo trạng thái cho ngày đó
+      const orderStatusForDay = orderStatusData
+        .filter((status) => status.orderDate === day) // Lọc ra trạng thái theo ngày hiện tại
+        .reduce((acc, status) => {
+          if (!acc[status.orderStatus]) {
+            acc[status.orderStatus] = 0;
+          }
+          acc[status.orderStatus] += status.totalOrders;
+          return acc;
+        }, {});
+
+      return {
+        time: formattedDay,
+        totalRevenue: dayRevenueData.totalRevenue,
+        paidRevenue: dayRevenueData.paidRevenue,
+        unpaidRevenue: dayRevenueData.unpaidRevenue,
+        totalOrders: dayRevenueData.totalOrders,
+        orderStatusSummary: [
+          {
+            orderStatus: 'Chờ xử lý',
+            totalOrders: orderStatusForDay['Chờ xử lý'] || 0,
+          },
+          {
+            orderStatus: 'Đã giao hàng',
+            totalOrders: orderStatusForDay['Đã giao hàng'] || 0,
+          },
+          // Bạn có thể thêm nhiều trạng thái khác nếu cần
+        ],
+        productTypeStatistics: [
+          {
+            productTypes: finalProductTypes,
+            totalProductsSold: totalProductsSold,
+          },
+        ],
+      };
+    });
+
+    return res.status(200).json({
+      message: 'Thống kê thành công',
+      data: {
+        statisticsByDate: fullData,
+        totalRevenue: totalStatistics.totalRevenue,
+        totalOrders: totalStatistics.totalOrders,
+        totalProductsSold: productTypeData[0]?.totalProductsSold || 0,
+        productTypeSummary: productTypeData[0]?.productTypes || [],
+      },
+      startDate,
+      endDate,
     });
   } catch (error) {
-    console.error('Lỗi khi lấy thống kê số lượng đơn hàng:', error);
-    res.status(500).json({ message: 'Có lỗi xảy ra', error });
+    console.error('Lỗi khi lấy thống kê:', error);
+    return res
+      .status(500)
+      .json({ message: 'Có lỗi xảy ra, vui lòng thử lại sau.' });
+  }
+};
+
+export const getStatisticsByYear = async (req, res) => {
+  try {
+    const { year } = req.query;
+
+    if (!year) {
+      return res.status(400).json({ message: 'Vui lòng cung cấp năm.' });
+    }
+
+    const start = new Date(`${year}-01-01`);
+    const end = new Date(`${year}-12-31`);
+    end.setHours(23, 59, 59, 999); // Đặt giờ cuối cùng của ngày cuối năm
+
+    // Tạo mảng chứa các tháng trong năm
+    const monthsArray = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    // 1. Tính doanh thu và tổng số lượng đơn hàng theo từng tháng
+    const revenueData = await Order.aggregate([
+      {
+        $match: {
+          orderDate: {
+            $gte: start,
+            $lte: end,
+          },
+        },
+      },
+      {
+        $project: {
+          totalPrice: 1,
+          paymentStatus: 1,
+          month: { $month: '$orderDate' }, // Lấy tháng từ orderDate
+        },
+      },
+      {
+        $group: {
+          _id: '$month', // Nhóm theo tháng
+          totalRevenue: { $sum: '$totalPrice' },
+          paidRevenue: {
+            $sum: {
+              $cond: [{ $eq: ['$paymentStatus', true] }, '$totalPrice', 0],
+            },
+          },
+          unpaidRevenue: {
+            $sum: {
+              $cond: [{ $eq: ['$paymentStatus', false] }, '$totalPrice', 0],
+            },
+          },
+          totalOrders: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // 2. Lấy tổng số đơn hàng theo từng trạng thái trong từng tháng
+    const orderStatusData = await Order.aggregate([
+      {
+        $match: {
+          orderDate: { $gte: start, $lte: end },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            orderStatus: '$orderStatus',
+            month: { $month: '$orderDate' }, // Lấy tháng từ orderDate
+          },
+          totalOrders: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: 'orderstatuses',
+          localField: '_id.orderStatus',
+          foreignField: '_id',
+          as: 'statusInfo',
+        },
+      },
+      {
+        $unwind: '$statusInfo',
+      },
+      {
+        $project: {
+          _id: 0,
+          orderStatus: '$statusInfo.orderStatus',
+          month: '$_id.month',
+          totalOrders: 1,
+        },
+      },
+    ]);
+
+    // 3. Tính tổng số lượng sản phẩm bán ra theo loại sản phẩm trong từng tháng
+    const productTypeData = await Order.aggregate([
+      {
+        $match: {
+          orderDate: { $gte: start, $lte: end },
+        },
+      },
+      {
+        $unwind: '$orderDetail',
+      },
+      {
+        $lookup: {
+          from: 'cartdetails',
+          localField: 'orderDetail',
+          foreignField: '_id',
+          as: 'cartDetail',
+        },
+      },
+      {
+        $unwind: '$cartDetail',
+      },
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'cartDetail.product',
+          foreignField: '_id',
+          as: 'product',
+        },
+      },
+      {
+        $unwind: '$product',
+      },
+      {
+        $lookup: {
+          from: 'producttypes',
+          localField: 'product.productType',
+          foreignField: '_id',
+          as: 'productType',
+        },
+      },
+      {
+        $unwind: '$productType',
+      },
+      {
+        $group: {
+          _id: {
+            productTypeName: '$productType.productTypeName',
+            month: { $month: '$orderDate' }, // Lấy tháng từ orderDate
+          },
+          totalSold: { $sum: '$cartDetail.quantity' },
+        },
+      },
+      {
+        $group: {
+          _id: '$_id.month',
+          productTypes: {
+            $push: {
+              productType: '$_id.productTypeName',
+              totalSold: '$totalSold',
+            },
+          },
+          totalProductsSold: { $sum: '$totalSold' },
+        },
+      },
+    ]);
+
+    // Tính tổng doanh thu và tổng đơn hàng trong toàn bộ năm
+    const totalStatistics = revenueData.reduce(
+      (acc, month) => {
+        acc.totalRevenue += month.totalRevenue;
+        acc.totalOrders += month.totalOrders;
+        return acc;
+      },
+      { totalRevenue: 0, totalOrders: 0 }
+    );
+
+    // 4. Xây dựng dữ liệu trả về với các thống kê đã yêu cầu
+    const fullData = monthsArray.map((month) => {
+      // Tìm dữ liệu doanh thu cho tháng đó
+      const monthRevenueData = revenueData.find(
+        (data) => data._id === month
+      ) || {
+        totalRevenue: 0,
+        paidRevenue: 0,
+        unpaidRevenue: 0,
+        totalOrders: 0,
+      };
+
+      // Tìm dữ liệu thống kê loại sản phẩm cho tháng đó
+      const productTypeStats =
+        productTypeData.find((data) => data._id === month)?.productTypes || [];
+      const totalProductsSold =
+        productTypeData.find((data) => data._id === month)?.totalProductsSold ||
+        0;
+
+      // Thêm giá trị mặc định cho các loại sản phẩm nếu không có dữ liệu
+      const defaultProductTypes = [
+        { productType: 'Túi vợt cầu lông', totalSold: 0 },
+        { productType: 'Vợt cầu lông', totalSold: 0 },
+        { productType: 'Balo cầu lông', totalSold: 0 },
+      ];
+
+      const finalProductTypes = defaultProductTypes.map((defaultType) => {
+        const actualType = productTypeStats.find(
+          (type) => type.productType === defaultType.productType
+        );
+        return actualType || defaultType; // Nếu không có, giữ giá trị mặc định
+      });
+
+      // Lấy thông tin tổng đơn hàng theo trạng thái cho tháng đó
+      const orderStatusForMonth = orderStatusData
+        .filter((status) => status.month === month)
+        .reduce((acc, status) => {
+          if (!acc[status.orderStatus]) {
+            acc[status.orderStatus] = 0;
+          }
+          acc[status.orderStatus] += status.totalOrders;
+          return acc;
+        }, {});
+
+      return {
+        month: `Tháng ${month}`,
+        totalRevenue: monthRevenueData.totalRevenue,
+        paidRevenue: monthRevenueData.paidRevenue,
+        unpaidRevenue: monthRevenueData.unpaidRevenue,
+        totalOrders: monthRevenueData.totalOrders,
+        orderStatusSummary: [
+          {
+            orderStatus: 'Chờ xử lý',
+            totalOrders: orderStatusForMonth['Chờ xử lý'] || 0,
+          },
+          {
+            orderStatus: 'Đã giao hàng',
+            totalOrders: orderStatusForMonth['Đã giao hàng'] || 0,
+          },
+          // Bạn có thể thêm nhiều trạng thái khác nếu cần
+        ],
+        productTypeStatistics: [
+          {
+            productTypes: finalProductTypes,
+            totalProductsSold: totalProductsSold,
+          },
+        ],
+      };
+    });
+
+    return res.status(200).json({
+      message: 'Thống kê thành công',
+      data: {
+        statisticsByMonth: fullData,
+        totalRevenue: totalStatistics.totalRevenue,
+        totalOrders: totalStatistics.totalOrders,
+        totalProductsSold: productTypeData[0]?.totalProductsSold || 0,
+        productTypeSummary: productTypeData[0]?.productTypes || [],
+      },
+      year,
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy thống kê:', error);
+    return res
+      .status(500)
+      .json({ message: 'Có lỗi xảy ra, vui lòng thử lại sau.' });
   }
 };
 
@@ -592,255 +672,6 @@ export const getTotalUsersByMonth = async (req, res) => {
     res.status(200).json({
       message: `Số tài khoản mới trong tháng ${currentMonth}/${currentYear}`,
       newAccountsCount,
-      error: false,
-    });
-  } catch (error) {
-    logError(error, res);
-  }
-};
-
-export const getQuantityPerProductType = async (req, res) => {
-  try {
-    const result = await Order.aggregate([
-      {
-        // Tách từng orderDetail thành các document riêng
-        $unwind: '$orderDetail',
-      },
-      {
-        // Lookup để lấy thông tin sản phẩm từ CartDetail -> Product
-        $lookup: {
-          from: 'cartdetails',
-          localField: 'orderDetail', // field để join từ Order
-          foreignField: '_id', // field từ CartDetail
-          as: 'cartDetail',
-        },
-      },
-      {
-        $unwind: '$cartDetail', // Mở rộng cartDetail (mảng) thành các document riêng
-      },
-      {
-        // Lookup để lấy thông tin sản phẩm từ Product
-        $lookup: {
-          from: 'products', // Tên collection của Product
-          localField: 'cartDetail.product', // product field từ CartDetail
-          foreignField: '_id', // _id từ Product
-          as: 'product',
-        },
-      },
-      {
-        $unwind: '$product', // Mở rộng product thành document riêng
-      },
-      {
-        // Lookup để lấy thông tin productType từ ProductType
-        $lookup: {
-          from: 'producttypes', // Tên collection của ProductType
-          localField: 'product.productType', // productType field từ Product
-          foreignField: '_id', // _id từ ProductType
-          as: 'productType',
-        },
-      },
-      {
-        $unwind: '$productType', // Mở rộng productType thành document riêng
-      },
-      {
-        // Nhóm theo productTypeName và tính tổng số lượng sản phẩm
-        $group: {
-          _id: '$productType.productTypeName', // Nhóm theo tên loại sản phẩm
-          totalSold: { $sum: '$cartDetail.quantity' }, // Tính tổng số lượng đã bán
-        },
-      },
-      {
-        // Tính tổng số lượng tất cả sản phẩm đã bán ra
-        $group: {
-          _id: null,
-          productTypes: {
-            $push: { productType: '$_id', totalSold: '$totalSold' },
-          }, // Lưu trữ các loại sản phẩm và số lượng
-          totalProductsSold: { $sum: '$totalSold' }, // Tính tổng sản phẩm đã bán
-        },
-      },
-      {
-        // Tính phần trăm và định dạng kết quả
-        $unwind: '$productTypes', // Mở rộng các loại sản phẩm
-      },
-      {
-        $addFields: {
-          percentage: {
-            $multiply: [
-              { $divide: ['$productTypes.totalSold', '$totalProductsSold'] },
-              100,
-            ],
-          }, // Tính phần trăm
-        },
-      },
-      {
-        // Project để định dạng kết quả cuối cùng
-        $project: {
-          _id: 0, // Ẩn _id
-          productType: '$productTypes.productType', // Loại sản phẩm
-          totalSold: '$productTypes.totalSold', // Số lượng sản phẩm đã bán
-          percentage: { $round: ['$percentage', 2] }, // Làm tròn phần trăm đến 2 chữ số
-        },
-      },
-    ]);
-
-    if (!result || result.length === 0) {
-      return res.status(404).json({ message: 'Không có dữ liệu.' });
-    }
-
-    res.status(200).json({
-      data: result,
-      error: false,
-    });
-  } catch (error) {
-    logError(error, res);
-  }
-};
-
-export const getProductTypeSalesPerYear = async (req, res) => {
-  try {
-    const { year } = req.query; // Nhận năm từ query (ví dụ: ?year=2024)
-
-    if (!year) {
-      return res.status(400).json({ message: 'Vui lòng cung cấp năm.' });
-    }
-
-    const result = await Order.aggregate([
-      {
-        $unwind: '$orderDetail',
-      },
-      {
-        $lookup: {
-          from: 'cartdetails',
-          localField: 'orderDetail',
-          foreignField: '_id',
-          as: 'cartDetail',
-        },
-      },
-      {
-        $unwind: '$cartDetail',
-      },
-      {
-        $lookup: {
-          from: 'products',
-          localField: 'cartDetail.product',
-          foreignField: '_id',
-          as: 'product',
-        },
-      },
-      {
-        $unwind: '$product',
-      },
-      {
-        $lookup: {
-          from: 'producttypes',
-          localField: 'product.productType',
-          foreignField: '_id',
-          as: 'productType',
-        },
-      },
-      {
-        $unwind: '$productType',
-      },
-      {
-        $addFields: {
-          month: { $month: '$createdAt' },
-          year: { $year: '$createdAt' },
-        },
-      },
-      {
-        // Lọc dữ liệu theo năm được cung cấp
-        $match: {
-          year: parseInt(year), // So sánh với năm từ query
-        },
-      },
-      {
-        $group: {
-          _id: {
-            month: '$month',
-            year: '$year',
-            productType: '$productType.productTypeName',
-          },
-          totalSold: { $sum: '$cartDetail.quantity' },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            productType: '$_id.productType',
-          },
-          monthlySales: {
-            $push: {
-              month: '$_id.month',
-              totalSold: '$totalSold',
-            },
-          },
-        },
-      },
-      {
-        $sort: {
-          '_id.productType': 1,
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          productType: '$_id.productType',
-          monthlySales: 1,
-        },
-      },
-    ]);
-
-    // Tạo mảng cho các tháng trong năm
-    const months = Array.from({ length: 12 }, (_, i) => ({
-      month: i + 1,
-      totalSold: 0,
-    }));
-
-    // Tạo mảng cho các loại sản phẩm với doanh số cho từng tháng
-    const productTypeSales = result.map((item) => {
-      const salesForMonth = months.map((month) => {
-        // Tìm tổng doanh số cho từng tháng
-        const monthData = item.monthlySales.find(
-          (ms) => ms.month === month.month
-        );
-        return {
-          month: month.month,
-          totalSold: monthData ? monthData.totalSold : 0, // Nếu không có dữ liệu, set về 0
-        };
-      });
-
-      return {
-        productType: item.productType,
-        monthlySales: salesForMonth,
-      };
-    });
-
-    // Nếu không có dữ liệu cho loại sản phẩm nào, thêm vào với doanh số = 0 cho từng tháng
-    const defaultProductTypes = [
-      'Túi vợt cầu lông',
-      'Vợt cầu lông',
-      'Balo cầu lông',
-      // Thêm các productType khác nếu cần
-    ];
-
-    defaultProductTypes.forEach((productType) => {
-      const found = productTypeSales.find(
-        (pt) => pt.productType === productType
-      );
-      if (!found) {
-        productTypeSales.push({
-          productType,
-          monthlySales: months.map((month) => ({
-            month: month.month,
-            totalSold: 0,
-          })),
-        });
-      }
-    });
-
-    res.status(200).json({
-      data: productTypeSales,
       error: false,
     });
   } catch (error) {
