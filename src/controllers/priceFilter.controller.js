@@ -2,9 +2,9 @@ import { PriceFilter, SystemConfig } from '../models/systemConfig.model.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 import logError from '../utils/logError.js';
 
-export const getAllPriceFiler = async (req, res) => {
+export const getAllPriceFiler = async (_, res) => {
   try {
-    const priceFilters = await PriceFilter.find();
+    const priceFilters = await PriceFilter.find().sort({ toPrice: 1 });
 
     if (Array.isArray(priceFilters) && priceFilters.length === 0) {
       return res.status(404).json({
@@ -25,19 +25,19 @@ export const createPriceFilter = async (req, res) => {
   try {
     const { fromPrice, toPrice } = req.body;
 
-    if (!fromPrice.toString()) {
+    if (fromPrice && !fromPrice.toString()) {
       return res.status(400).json({
         error: 'Missing required field',
       });
     }
 
-    if (isNaN(fromPrice) || fromPrice < 0) {
+    if (!isNaN(fromPrice) && fromPrice < 0) {
       return res.status(400).json({
         error: 'From Price must be a number greater than 0',
       });
     }
 
-    if (toPrice && (isNaN(toPrice) || toPrice < fromPrice)) {
+    if (toPrice && !isNaN(toPrice) && toPrice < fromPrice) {
       return res.status(400).json({
         error: 'To Price must be a number greater than or equal From Price',
       });
@@ -145,6 +145,7 @@ export const deletePriceFilter = async (req, res) => {
     }
 
     res.status(200).json({
+      data: deletedPriceFilter,
       error: false,
     });
   } catch (error) {

@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 const priceFilterSchema = new mongoose.Schema({
   fromPrice: {
     type: Number,
-    required: true,
   },
   toPrice: {
     type: Number,
