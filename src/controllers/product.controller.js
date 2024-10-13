@@ -128,11 +128,14 @@ export const getAllProducts = async (req, res) => {
       });
     }
 
-    const sortDirection = isDesc === 'true' ? -1 : 1;
+    let sortStage = {};
 
-    const sortStage = {
-      $sort: { [sortBy]: sortDirection },
-    };
+    if (sortBy) {
+      const sortDirection = isDesc === 'true' ? -1 : 1;
+      sortStage = { $sort: { [sortBy]: sortDirection } };
+    } else {
+      sortStage = { $sort: { countInStock: -1 } };
+    }
 
     pipeline.push(sortStage);
 
@@ -157,7 +160,8 @@ export const getAllProducts = async (req, res) => {
       return res.status(404).json({ error: 'Products not found' });
     }
 
-    const totalPages = parseInt(limit) === -1 ? 1 : Math.ceil(totalDocs / limit);
+    const totalPages =
+      parseInt(limit) === -1 ? 1 : Math.ceil(totalDocs / limit);
 
     res.status(200).json({
       data: products,
@@ -244,7 +248,9 @@ export const addProduct = async (req, res) => {
     }
 
     // const productImagePath = req?.files?.map((file) => file.path);
-    payload.productImagePath = payload.productImagePath || (req.files ? req.files.map((file) => file.path) : []);
+    payload.productImagePath =
+      payload.productImagePath ||
+      (req.files ? req.files.map((file) => file.path) : []);
 
     // console.log(productImagePath);
 
@@ -258,11 +264,11 @@ export const addProduct = async (req, res) => {
     const newProduct = await Product.create(productInfo);
 
     const populatedProduct = await Product.findById(newProduct._id)
-    .populate('productBrand')
-    .populate('productType')
-    .populate('discount')
-    .populate('promotion')
-    .populate('technicalSpecification.specificationName');
+      .populate('productBrand')
+      .populate('productType')
+      .populate('discount')
+      .populate('promotion')
+      .populate('technicalSpecification.specificationName');
 
     res.status(201).json({
       data: populatedProduct,
@@ -308,7 +314,8 @@ export const updateProduct = async (req, res) => {
     updateFields.price = payload.price || existingProduct.price;
     updateFields.description =
       payload.description || existingProduct.description;
-    updateFields.productImagePath = payload.productImagePath || existingProduct.productImagePath;
+    updateFields.productImagePath =
+      payload.productImagePath || existingProduct.productImagePath;
 
     updateFields.countInStock =
       payload.countInStock > 0

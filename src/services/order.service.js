@@ -1,5 +1,6 @@
 import { Cart, CartDetail } from '../models/cart.model.js';
 import { Order } from '../models/order.model.js';
+import { Product } from '../models/product.model.js';
 import { UserVoucher, Voucher } from '../models/voucher.model.js';
 
 export const createOrderService = async ({
@@ -25,15 +26,19 @@ export const createOrderService = async ({
 
   if (voucherId) {
     if (!existingVoucher) {
-      return res.status(404).json({
+      return {
         error: 'Not found voucher',
-      });
+        status: 400,
+        data: null,
+      };
     }
 
     if (existingVoucher.expiredDate < new Date()) {
-      return res.status(400).json({
+      return {
         error: 'Voucher expired!',
-      });
+        status: 400,
+        data: null,
+      };
     }
   }
 
@@ -47,6 +52,28 @@ export const createOrderService = async ({
       error: 'Some product is not in your cart!',
       data: null,
     };
+  }
+
+  const products = await Product.find({
+    _id: { $in: existingCartDetail.map((item) => item.product._id) },
+  });
+
+  if (Array.isArray(products) && products.length !== 0) {
+    for (const product of products) {
+      const cartItem = existingCartDetail.find(
+        (item) => item.product._id.toString() === product._id.toString()
+      );
+
+      if (product.countInStock < cartItem.quantity) {
+        return {
+          status: 400,
+          error: 'Some products were out of stock or insufficient stock',
+        };
+      } else {
+        product.countInStock -= cartItem.quantity;
+        await product.save();
+      }
+    }
   }
 
   cart.cartItems = cart.cartItems.filter(
