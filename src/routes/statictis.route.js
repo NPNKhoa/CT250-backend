@@ -5,7 +5,8 @@ import {
   getRevenueForAllYears,
   getTotalOrdersPerMonthByYear,
   getTotalUsers,
-  getTotalUsersByMonth,
+  getTotalUsersByDate,
+  getTotalUsersByYear,
   getTotalSoldPerMonth,
   getLatestOrders,
   getProductTypeSalesPerYears,
@@ -22,7 +23,8 @@ router.get('/gettime', getStatisticsByDateRange);
 router.get('/getyear', getStatisticsByYear);
 
 router.get('/totalusers', getTotalUsers);
-router.get('/totalusersbymonth', getTotalUsersByMonth);
+router.get('/totalusersbytime', getTotalUsersByDate);
+router.get('/totalusersbyear', getTotalUsersByYear);
 
 router.get('/quantityallyear', getProductTypeSalesPerYears);
 
