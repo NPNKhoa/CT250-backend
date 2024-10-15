@@ -646,18 +646,21 @@ export const getStatisticsByYear = async (req, res) => {
 };
 
 export const getTotalUsers = async (req, res) => {
-  // try {
-  //   const totalUsers = await User.countDocuments({});
+  try {
+    const totalUsers = await User.countDocuments({});
 
-  //   res.status(200).json({
-  //     message: 'Số lượng tài khoản người dùng hiện có.',
-  //     totalUsers,
-  //     error: false,
-  //   });
-  // } catch (error) {
-  //   logError(error, res);
-  // }
+    res.status(200).json({
+      message: 'Số lượng tài khoản người dùng hiện có.',
+      totalUsers,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
 
+// Hàm lấy số lượng người dùng đăng ký theo ngày
+export const getTotalUsersByDate = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
@@ -710,7 +713,7 @@ export const getTotalUsers = async (req, res) => {
 
     // Tạo mảng kết quả để trả về
     const result = daysArray.map((day) => ({
-      date: day,
+      time: day,
       totalUsers: userCountByDate[day] || 0, // Gán 0 nếu không có người dùng đăng ký trong ngày
     }));
 
@@ -725,27 +728,66 @@ export const getTotalUsers = async (req, res) => {
   }
 };
 
-export const getTotalUsersByMonth = async (req, res) => {
+export const getTotalUsersByYear = async (req, res) => {
   try {
-    const { month, year } = req.query;
+    const { year } = req.query;
 
-    // Nếu không có tham số month và year thì lấy tháng và năm hiện tại
-    const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
-    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+    // Kiểm tra nếu có năm
+    if (!year) {
+      return res.status(400).json({
+        message: 'Vui lòng cung cấp năm.',
+        error: true,
+      });
+    }
 
-    const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-    const endOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
+    const start = new Date(`${year}-01-01`);
+    const end = new Date(`${year}-12-31`);
+    end.setHours(23, 59, 59, 999); // Đặt giờ cuối cùng trong năm
 
-    const newAccountsCount = await User.countDocuments({
-      createdAt: {
-        $gte: startOfMonth,
-        $lte: endOfMonth,
+    // Sử dụng MongoDB aggregation để nhóm dữ liệu theo tháng đăng ký
+    const totalUsersByMonth = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end }, // Lọc theo năm
+        },
       },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m', date: '$createdAt' }, // Nhóm theo tháng
+          },
+          totalUsers: { $sum: 1 }, // Tính tổng số người dùng trong mỗi tháng
+        },
+      },
+      { $sort: { _id: 1 } }, // Sắp xếp theo tháng tăng dần
+    ]);
+
+    // Tạo mảng chứa số người dùng theo từng tháng
+    const userCountByMonth = totalUsersByMonth.reduce((acc, monthData) => {
+      acc[monthData._id.split('-')[1]] = monthData.totalUsers; // Lưu số lượng người dùng theo tháng
+      return acc;
+    }, {});
+
+    // Tạo mảng kết quả cho từng tháng trong năm
+    const result = Array.from({ length: 12 }, (_, index) => {
+      const month = String(index + 1).padStart(2, '0'); // Chuyển đổi sang định dạng MM
+      return {
+        month: `Tháng ${month}`,
+        totalUsers: userCountByMonth[month] || 0,
+      };
     });
 
-    res.status(200).json({
-      message: `Số tài khoản mới trong tháng ${currentMonth}/${currentYear}`,
-      newAccountsCount,
+    // Tính tổng số người dùng cho đến cuối năm
+    const totalUsersUntilYearEnd = await User.countDocuments({
+      createdAt: { $lte: end },
+    });
+
+    // Tạo kết quả trả về
+    return res.status(200).json({
+      message: 'Số lượng tài khoản người dùng đăng ký theo tháng trong năm.',
+      year: year,
+      totalUsersByMonth: result, // Mảng chứa thông tin từng tháng
+      totalUsersUntilYearEnd,
       error: false,
     });
   } catch (error) {
