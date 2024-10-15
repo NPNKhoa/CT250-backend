@@ -199,7 +199,8 @@ export const updateVoucher = async (req, res) => {
 
     if (
       voucherType &&
-      (voucherType !== 'public' || voucherType !== 'private')
+      voucherType !== 'public' &&
+      voucherType !== 'private'
     ) {
       return res.status(400).json({
         error: 'Invalid voucherType',
@@ -316,7 +317,10 @@ export const deleteVoucher = async (req, res) => {
       });
     }
 
-    res.sendStatus(204);
+    res.status(200).json({
+      message: 'Voucher deleted successfully',
+      error: false,
+    });
   } catch (error) {
     logError(error, res);
   }
