@@ -1,5 +1,6 @@
 import { Order } from '../models/order.model.js';
 import { User } from '../models/user.model.js';
+import { ProductType } from '../models/product.model.js';
 import logError from '../utils/logError.js';
 import { OrderStatus } from '../models/order.model.js';
 
@@ -289,6 +290,7 @@ export const getStatisticsByDateRange = async (req, res) => {
       },
       { totalRevenue: 0, totalOrders: 0 }
     );
+    const productTypesList = await ProductType.find().select('productTypeName');
 
     // 4. Xây dựng dữ liệu trả về với các thống kê đã yêu cầu
     const fullData = daysArray.map((day) => {
@@ -313,18 +315,17 @@ export const getStatisticsByDateRange = async (req, res) => {
         productTypeData.find((data) => data._id === day)?.totalProductsSold ||
         0;
 
-      // Nếu không có loại sản phẩm nào thì thêm giá trị mặc định
-      const defaultProductTypes = [
-        { productType: 'Túi vợt cầu lông', totalSold: 0 },
-        { productType: 'Vợt cầu lông', totalSold: 0 },
-        { productType: 'Balo cầu lông', totalSold: 0 },
-      ];
-
-      const finalProductTypes = defaultProductTypes.map((defaultType) => {
+      // Sử dụng danh sách loại sản phẩm từ DB thay vì giá trị mặc định
+      const finalProductTypes = productTypesList.map((productType) => {
         const actualType = productTypeStats.find(
-          (type) => type.productType === defaultType.productType
+          (type) => type.productType === productType.productTypeName
         );
-        return actualType || defaultType; // Nếu không có, giữ giá trị mặc định
+        return (
+          actualType || {
+            productType: productType.productTypeName,
+            totalSold: 0,
+          }
+        ); // Nếu không có, giữ giá trị 0
       });
 
       // Lấy thông tin tổng đơn hàng theo trạng thái cho ngày đó
@@ -344,6 +345,7 @@ export const getStatisticsByDateRange = async (req, res) => {
         paidRevenue: dayRevenueData.paidRevenue,
         unpaidRevenue: dayRevenueData.unpaidRevenue,
         totalOrders: dayRevenueData.totalOrders,
+        totalProductsSold: totalProductsSold,
         orderStatusSummary: [
           {
             orderStatus: 'Chờ xử lý',
@@ -353,7 +355,10 @@ export const getStatisticsByDateRange = async (req, res) => {
             orderStatus: 'Đã giao hàng',
             totalOrders: orderStatusForDay['Đã giao hàng'] || 0,
           },
-          // Bạn có thể thêm nhiều trạng thái khác nếu cần
+          {
+            orderStatus: 'Đã hủy',
+            totalOrders: orderStatusForDay['Đã hủy'] || 0,
+          },
         ],
         productTypeStatistics: [
           {
@@ -372,9 +377,8 @@ export const getStatisticsByDateRange = async (req, res) => {
         totalOrders: totalStatistics.totalOrders,
         totalProductsSold: productTypeData[0]?.totalProductsSold || 0,
         productTypeSummary: productTypeData[0]?.productTypes || [],
+        dateRange: { startDate, endDate },
       },
-      startDate,
-      endDate,
     });
   } catch (error) {
     console.error('Lỗi khi lấy thống kê:', error);
@@ -549,6 +553,7 @@ export const getStatisticsByYear = async (req, res) => {
     );
 
     // 4. Xây dựng dữ liệu trả về với các thống kê đã yêu cầu
+    const productTypesList = await ProductType.find().select('productTypeName');
     const fullData = monthsArray.map((month) => {
       // Tìm dữ liệu doanh thu cho tháng đó
       const monthRevenueData = revenueData.find(
@@ -567,18 +572,17 @@ export const getStatisticsByYear = async (req, res) => {
         productTypeData.find((data) => data._id === month)?.totalProductsSold ||
         0;
 
-      // Thêm giá trị mặc định cho các loại sản phẩm nếu không có dữ liệu
-      const defaultProductTypes = [
-        { productType: 'Túi vợt cầu lông', totalSold: 0 },
-        { productType: 'Vợt cầu lông', totalSold: 0 },
-        { productType: 'Balo cầu lông', totalSold: 0 },
-      ];
-
-      const finalProductTypes = defaultProductTypes.map((defaultType) => {
+      // Sử dụng danh sách loại sản phẩm từ DB thay vì giá trị mặc định
+      const finalProductTypes = productTypesList.map((productType) => {
         const actualType = productTypeStats.find(
-          (type) => type.productType === defaultType.productType
+          (type) => type.productType === productType.productTypeName
         );
-        return actualType || defaultType; // Nếu không có, giữ giá trị mặc định
+        return (
+          actualType || {
+            productType: productType.productTypeName,
+            totalSold: 0,
+          }
+        ); // Nếu không có, giữ giá trị 0
       });
 
       // Lấy thông tin tổng đơn hàng theo trạng thái cho tháng đó
@@ -598,6 +602,7 @@ export const getStatisticsByYear = async (req, res) => {
         paidRevenue: monthRevenueData.paidRevenue,
         unpaidRevenue: monthRevenueData.unpaidRevenue,
         totalOrders: monthRevenueData.totalOrders,
+        totalProductsSold: totalProductsSold,
         orderStatusSummary: [
           {
             orderStatus: 'Chờ xử lý',
@@ -607,7 +612,10 @@ export const getStatisticsByYear = async (req, res) => {
             orderStatus: 'Đã giao hàng',
             totalOrders: orderStatusForMonth['Đã giao hàng'] || 0,
           },
-          // Bạn có thể thêm nhiều trạng thái khác nếu cần
+          {
+            orderStatus: 'Đã hủy',
+            totalOrders: orderStatusForMonth['Đã hủy'] || 0,
+          },
         ],
         productTypeStatistics: [
           {
@@ -638,12 +646,78 @@ export const getStatisticsByYear = async (req, res) => {
 };
 
 export const getTotalUsers = async (req, res) => {
-  try {
-    const totalUsers = await User.countDocuments({});
+  // try {
+  //   const totalUsers = await User.countDocuments({});
 
-    res.status(200).json({
-      message: 'Số lượng tài khoản người dùng hiện có.',
-      totalUsers,
+  //   res.status(200).json({
+  //     message: 'Số lượng tài khoản người dùng hiện có.',
+  //     totalUsers,
+  //     error: false,
+  //   });
+  // } catch (error) {
+  //   logError(error, res);
+  // }
+
+  try {
+    const { startDate, endDate } = req.query;
+
+    // Kiểm tra nếu có khoảng thời gian bắt đầu và kết thúc
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        message: 'Vui lòng cung cấp ngày bắt đầu và ngày kết thúc.',
+        error: true,
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // Đặt giờ cuối cùng trong ngày kết thúc
+
+    // Tạo một mảng chứa tất cả các ngày trong khoảng thời gian
+    const daysArray = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      daysArray.push(d.toISOString().split('T')[0]);
+    }
+
+    // Sử dụng MongoDB aggregation để nhóm dữ liệu theo ngày đăng ký
+    const totalUsersByDate = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end }, // Lọc theo khoảng thời gian
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }, // Nhóm theo ngày
+          },
+          totalUsers: { $sum: 1 }, // Tính tổng số người dùng trong mỗi ngày
+        },
+      },
+      { $sort: { _id: 1 } }, // Sắp xếp theo ngày tăng dần
+    ]);
+
+    // Tạo đối tượng để lưu trữ số người dùng theo ngày
+    const userCountByDate = totalUsersByDate.reduce((acc, dayData) => {
+      acc[dayData._id] = dayData.totalUsers;
+      return acc;
+    }, {});
+
+    // Tính tổng số người dùng cho đến ngày kết thúc
+    const totalUsersUntilEndDate = await User.countDocuments({
+      createdAt: { $lte: end },
+    });
+
+    // Tạo mảng kết quả để trả về
+    const result = daysArray.map((day) => ({
+      date: day,
+      totalUsers: userCountByDate[day] || 0, // Gán 0 nếu không có người dùng đăng ký trong ngày
+    }));
+
+    return res.status(200).json({
+      message: 'Số lượng tài khoản người dùng đăng ký theo thời gian.',
+      totalUsersByDate: result,
+      totalUsersUntilEndDate,
       error: false,
     });
   } catch (error) {
