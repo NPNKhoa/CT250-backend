@@ -9,6 +9,40 @@ const priceFilterSchema = new mongoose.Schema({
   },
 });
 
+const percentFilterSchema = new mongoose.Schema({
+  fromValue: {
+    type: Number,
+  },
+  toValue: {
+    type: Number,
+  },
+});
+
+const founderSchema = new mongoose.Schema({
+  founderName: {
+    type: String,
+    required: true,
+    default: '',
+  },
+  founderAvatarPath: {
+    type: String,
+    default: '',
+  },
+});
+
+const coreValueSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    default: '',
+  },
+  content: {
+    type: String,
+    required: true,
+    default: '',
+  },
+});
+
 const systemConfigSchema = new mongoose.Schema(
   {
     shopName: {
@@ -44,6 +78,27 @@ const systemConfigSchema = new mongoose.Schema(
         default: '',
       },
     ],
+    shopPercentFilter: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: 'PercentFilter',
+        default: '',
+      },
+    ],
+    coreValue: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: 'CoreValue',
+        default: '',
+      },
+    ],
+    founders: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: 'Founder',
+        default: '',
+      },
+    ],
     isChoose: {
       type: Boolean,
       default: false,
@@ -55,4 +110,10 @@ const systemConfigSchema = new mongoose.Schema(
 );
 
 export const PriceFilter = mongoose.model('PriceFilter', priceFilterSchema);
+export const PercentFilter = mongoose.model(
+  'PercentFilter',
+  percentFilterSchema
+);
+export const Founder = mongoose.model('Founder', founderSchema);
+export const CoreValue = mongoose.model('CoreValue', coreValueSchema);
 export const SystemConfig = mongoose.model('SystemConfig', systemConfigSchema);

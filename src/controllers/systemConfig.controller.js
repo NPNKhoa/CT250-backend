@@ -1,5 +1,12 @@
-import { PriceFilter, SystemConfig } from '../models/systemConfig.model.js';
+import {
+  CoreValue,
+  Founder,
+  PercentFilter,
+  PriceFilter,
+  SystemConfig,
+} from '../models/systemConfig.model.js';
 import logError from '../utils/logError.js';
+import { isValidObjectId } from '../utils/isValidObjectId.js';
 
 export const createConfig = async (req, res) => {
   try {
@@ -44,7 +51,11 @@ export const getCurrentConfig = async (_, res) => {
   try {
     const systemConfig = await SystemConfig.findOne({
       isChoose: true,
-    }).populate('shopPriceFilter');
+    })
+      .populate('shopPriceFilter')
+      .populate('shopPercentFilter')
+      .populate('coreValue')
+      .populate('founders');
 
     if (!systemConfig) {
       return res.status(404).json({
@@ -154,6 +165,228 @@ export const backupConfig = async (_, res) => {
 
     return res.status(200).json({
       data: responseConfig,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const addFilterPercent = async (req, res) => {
+  try {
+    const { fromValue, toValue } = req.body;
+
+    if (!isNaN(fromValue) && (fromValue < 0 || fromValue > 100)) {
+      return res.status(400).json({
+        error: 'From value must be a number between 0 and 100',
+      });
+    }
+
+    if (!isNaN(toValue)) {
+      if (toValue < 0 || toValue > 100) {
+        return res.status(400).json({
+          error: 'To value must be a number between 0 and 100',
+        });
+      }
+
+      if (toValue < fromValue) {
+        return res.status(400).json({
+          error: 'To value must be greater than from value',
+        });
+      }
+    }
+
+    const newPercentFilter = await PercentFilter.create({
+      fromValue,
+      toValue,
+    });
+
+    res.status(201).json({
+      data: newPercentFilter,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const deleteFilterPercent = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (id && !isValidObjectId(id)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    const deletedFilter = await PercentFilter.findByIdAndDelete(id);
+
+    if (!deletedFilter) {
+      return res.status(404).json({
+        error: 'Not found',
+      });
+    }
+
+    res.sendStatus(204);
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getFilterPercent = async (_, res) => {
+  try {
+    const filterPercent = await PercentFilter.find();
+
+    if (Array.isArray(filterPercent) && filterPercent.length === 0) {
+      return res.status(404).json({
+        error: 'Not found',
+      });
+    }
+
+    res.status(200).json({
+      data: filterPercent,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const addCoreValue = async (req, res) => {
+  try {
+    const { title, content } = req.body;
+
+    const newCoreValue = await CoreValue.create({ title, content });
+
+    const currentConfig = await SystemConfig.findOne({ isChoose: true });
+
+    if (!currentConfig) {
+      return res.sendStatus(400);
+    }
+
+    currentConfig.coreValue.push(newCoreValue._id);
+
+    await currentConfig.save();
+
+    res.status(201).json({
+      data: newCoreValue,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const deleteCoreValue = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (id && !isValidObjectId(id)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    const deletedCoreValue = await CoreValue.findByIdAndDelete(id);
+
+    if (!deletedCoreValue) {
+      return res.status(404).json({
+        error: 'Not found',
+      });
+    }
+
+    res.sendStatus(204);
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getCoreValue = async (_, res) => {
+  try {
+    const coreValues = await CoreValue.find();
+
+    if (Array.isArray(coreValues) && coreValues.length === 0) {
+      return res.status(404).json({
+        error: 'Not found',
+      });
+    }
+
+    res.status(200).json({
+      data: coreValues,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const addFounder = async (req, res) => {
+  try {
+    const { founderName } = req.body;
+
+    const founderAvatarPath = req?.file?.path;
+
+    const newFounder = await Founder.create({
+      founderName,
+      founderAvatarPath,
+    });
+
+    const currentConfig = await SystemConfig.findOne({ isChoose: true });
+
+    if (!currentConfig) {
+      return res.sendStatus(400);
+    }
+
+    currentConfig.founders.push(newFounder._id);
+
+    await currentConfig.save();
+
+    res.status(201).json({
+      data: newFounder,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const deleteFounder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (id && !isValidObjectId(id)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    const deletedFounder = await Founder.findByIdAndDelete(id);
+
+    if (!deletedFounder) {
+      return res.status(404).json({
+        error: 'Not found',
+      });
+    }
+
+    res.sendStatus(204);
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getFounder = async (_, res) => {
+  try {
+    const founders = await Founder.find();
+
+    if (Array.isArray(founders) && founders.length === 0) {
+      return res.status(404).json({
+        error: 'Not found',
+      });
+    }
+
+    res.status(200).json({
+      data: founders,
       error: false,
     });
   } catch (error) {
