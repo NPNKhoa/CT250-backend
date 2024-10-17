@@ -73,10 +73,10 @@ export const getAllProducts = async (req, res) => {
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) {
-        query.price.$gte = parseFloat(minPrice);
+        query.discountedPrice.$gte = parseFloat(minPrice);
       }
       if (maxPrice) {
-        query.price.$lte = parseFloat(maxPrice);
+        query.discountedPrice.$lte = parseFloat(maxPrice);
       }
     }
 
