@@ -33,7 +33,16 @@ const ProductTypeSchema = new mongoose.Schema(
 const categorySchema = new mongoose.Schema({
   categoryName: {
     type: String,
-    required: true,
+    default: '',
+  },
+  productType: {
+    type: mongoose.Types.ObjectId,
+    ref: 'ProductType',
+    default: '',
+  },
+  brand: {
+    type: mongoose.Types.ObjectId,
+    ref: 'Brand',
     default: '',
   },
 });
