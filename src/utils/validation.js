@@ -24,8 +24,7 @@ export const validatePhone = (phone) => {
 export const productValidation = async (productInfo) => {
   const {
     productName,
-    productBrand,
-    productType,
+    category,
     productImagePath,
     discount,
     promotion,
@@ -38,8 +37,7 @@ export const productValidation = async (productInfo) => {
 
   if (
     !productName ||
-    !productBrand ||
-    !productType ||
+    !category ||
     !countInStock ||
     !price // ||
     // !description
@@ -51,8 +49,7 @@ export const productValidation = async (productInfo) => {
   }
 
   if (
-    !isValidObjectId(productBrand) ||
-    !isValidObjectId(productType) ||
+    !isValidObjectId(category) ||
     (discount && !isValidObjectId(discount)) ||
     (promotion && !isValidObjectId(promotion))
   ) {
@@ -69,19 +66,11 @@ export const productValidation = async (productInfo) => {
     };
   }
 
-  const existingBrand = await Brand.findById(productBrand);
-  if (!existingBrand) {
+  const existingCategory = await Category.findById(category);
+  if (!existingCategory) {
     return {
       status: 404,
-      payload: 'Brand not found',
-    };
-  }
-
-  const existingType = await ProductType.findById(productType);
-  if (!existingType) {
-    return {
-      status: 404,
-      payload: 'Product type not found!',
+      payload: 'Category not found',
     };
   }
 
@@ -137,8 +126,7 @@ export const productValidation = async (productInfo) => {
 
   const returnedPayload = {
     productName,
-    productBrand,
-    productType,
+    category,
     productImagePath,
     discount,
     discountedPrice: newPrice,
