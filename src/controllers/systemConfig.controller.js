@@ -1,4 +1,5 @@
 import {
+  Banner,
   CoreValue,
   Founder,
   PercentFilter,
@@ -248,6 +249,169 @@ export const getFilterPercent = async (_, res) => {
       data: filterPercent,
       error: false,
     });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const addBanner = async (req, res) => {
+  try {
+    const bannerImgPath = req?.file?.path;
+    const { isActiveBanner } = req.body;
+
+    if (!bannerImgPath) {
+      return res.status(400).json({
+        error: 'Missing file',
+      });
+    }
+
+    const newBanner = await Banner.create({
+      bannerImgPath,
+      isActiveBanner:
+        typeof isActiveBanner === 'boolean' ? isActiveBanner : false,
+    });
+
+    const currentConfig = await SystemConfig.findOne({ isChoose: true });
+
+    if (!currentConfig) {
+      return res.status(404).json({
+        error: 'Not found',
+      });
+    }
+
+    newBanner.isActiveBanner && currentConfig.bannerImgPath.push(newBanner._id);
+
+    await currentConfig.save();
+
+    res.status(201).json({
+      data: newBanner,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const updateActiveBanner = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (id && !isValidObjectId(id)) {
+      return res.status(400).json({
+        error: 'INvalid id',
+      });
+    }
+
+    const existingBanner = await Banner.findById(id);
+
+    if (!existingBanner) {
+      return res.status(404).json({
+        error: 'Not found banner',
+      });
+    }
+
+    existingBanner.isActiveBanner = true;
+
+    const currentConfig = await SystemConfig.findOne({ isChoose: true });
+
+    if (!currentConfig) {
+      return res.status(404).json({
+        error: 'Not found',
+      });
+    }
+
+    currentConfig.bannerImgPath.push(existingBanner._id);
+
+    await Promise.all([existingBanner.save(), currentConfig.save()]);
+
+    res.status(200).json({
+      data: currentConfig.bannerImgPath,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getAllBanners = async (_, res) => {
+  try {
+    const banners = await Banner.find();
+
+    if (Array.isArray(banners) && banners.length === 0) {
+      return res.status(404).json({
+        error: 'Not found banners',
+      });
+    }
+
+    return res.status(200).json({
+      data: banners,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const getActiveBanners = async (_, res) => {
+  try {
+    const activeBanners = await Banner.find({ isActiveBanner: true });
+
+    if (Array.isArray(activeBanners) && activeBanners.length === 0) {
+      return res.status(404).json({
+        error: 'Not found active banners',
+      });
+    }
+
+    res.status(200).json({
+      data: activeBanners,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const deleteBanner = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (id && !isValidObjectId(id)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    const deletedBanner = await Banner.findByIdAndDelete(id);
+
+    if (!deletedBanner) {
+      return res.status(404).json({
+        error: 'Not found',
+      });
+    }
+
+    const currentConfig = await SystemConfig.findOne({ isChoose: true });
+
+    if (!currentConfig) {
+      return res.status(404).json({
+        error: 'Not found',
+      });
+    }
+
+    const deletedIndex = currentConfig.bannerImgPath.findIndex((item) =>
+      item._id.equals(deletedBanner._id)
+    );
+
+    if (deletedIndex === -1) {
+      return res.status(400).json({
+        error: 'Banner not found in system config',
+      });
+    }
+
+    currentConfig.bannerImgPath.splice(deletedIndex, 1);
+
+    await currentConfig.save();
+
+    res.sendStatus(204);
   } catch (error) {
     logError(error, res);
   }

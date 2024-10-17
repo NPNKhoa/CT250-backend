@@ -18,6 +18,17 @@ const percentFilterSchema = new mongoose.Schema({
   },
 });
 
+const bannerSchema = new mongoose.Schema({
+  bannerImgPath: {
+    type: String,
+    default: '',
+  },
+  isActiveBanner: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 const founderSchema = new mongoose.Schema({
   founderName: {
     type: String,
@@ -55,8 +66,8 @@ const systemConfigSchema = new mongoose.Schema(
     },
     bannerImgPath: [
       {
-        type: String,
-        required: true,
+        type: mongoose.Types.ObjectId,
+        ref: 'Banner',
       },
     ],
     shopEmail: {
@@ -114,6 +125,7 @@ export const PercentFilter = mongoose.model(
   'PercentFilter',
   percentFilterSchema
 );
+export const Banner = mongoose.model('Banner', bannerSchema);
 export const Founder = mongoose.model('Founder', founderSchema);
 export const CoreValue = mongoose.model('CoreValue', coreValueSchema);
 export const SystemConfig = mongoose.model('SystemConfig', systemConfigSchema);
