@@ -14,7 +14,7 @@ export const getAllProducts = async (req, res) => {
       page = 1,
       limit = 10,
       isDesc = false,
-      sortBy = 'price',
+      sortBy = '',
     } = req.query;
 
     const query = {};
@@ -80,37 +80,27 @@ export const getAllProducts = async (req, res) => {
       }
     }
 
-    const pipeline = [
-      { $match: query },
-      {
+    const pipeline = [{ $match: query }];
+
+    if (category && category.trim() !== '') {
+      pipeline.push({
         $lookup: {
           from: 'categories',
           localField: 'category',
           foreignField: '_id',
           as: 'categoryDetails',
         },
-      },
-      {
-        $lookup: {
-          from: 'discounts',
-          localField: 'discount',
-          foreignField: '_id',
-          as: 'discountDetails',
-        },
-      },
-      { $unwind: '$categoryDetails' },
-      {
-        $unwind: { path: '$discountDetails', preserveNullAndEmptyArrays: true },
-      },
-    ];
-
-    if (category) {
+      });
+      pipeline.push({ $unwind: '$categoryDetails' });
       pipeline.push({
-        $match: { 'categoryDetails.categoryName': category },
+        $match: {
+          'categoryDetails.categoryName': { $regex: category, $options: 'i' },
+        },
       });
     }
 
     let sortStage = {};
+
     if (sortBy) {
       const sortDirection = isDesc === 'true' ? -1 : 1;
       sortStage = { $sort: { [sortBy]: sortDirection } };
@@ -129,7 +119,10 @@ export const getAllProducts = async (req, res) => {
     const totalDocs = totalDocsResult.length;
 
     if (parseInt(limit) !== -1) {
-      pipeline.push({ $skip: (page - 1) * limit }, { $limit: parseInt(limit) });
+      pipeline.push(
+        { $skip: (page - 1) * parseInt(limit) },
+        { $limit: parseInt(limit) }
+      );
     }
 
     const products = await mongoose.connection.db
@@ -141,17 +134,15 @@ export const getAllProducts = async (req, res) => {
       return res.status(404).json({ error: 'Products not found' });
     }
 
-    const totalPages =
-      parseInt(limit) === -1 ? 1 : Math.ceil(totalDocs / limit);
-
     res.status(200).json({
       data: products,
       error: false,
       meta: {
         totalDocs,
-        totalPages,
-        currentPage: page,
-        limit,
+        totalPages:
+          parseInt(limit) === -1 ? 1 : Math.ceil(totalDocs / parseInt(limit)),
+        currentPage: parseInt(page),
+        limit: parseInt(limit),
       },
     });
   } catch (error) {
@@ -170,8 +161,7 @@ export const getProductById = async (req, res) => {
     }
 
     const product = await Product.findById(productId)
-      .populate('productType', 'productTypeName -_id')
-      .populate('productBrand', 'brandName brandDesc -_id')
+      .populate('category')
       .populate(
         'technicalSpecification.specificationName',
         'specificationName -_id'
@@ -228,16 +218,12 @@ export const addProduct = async (req, res) => {
       });
     }
 
-    // const productImagePath = req?.files?.map((file) => file.path);
     payload.productImagePath =
       payload.productImagePath ||
       (req.files ? req.files.map((file) => file.path) : []);
 
-    // console.log(productImagePath);
-
     const productInfo = {
       ...payload,
-      // productImagePath: productImagePath ? productImagePath : [],
     };
 
     console.log(productInfo);
