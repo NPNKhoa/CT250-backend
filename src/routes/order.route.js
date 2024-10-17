@@ -8,6 +8,7 @@ import {
   getOrderById,
   getOrderByPhoneNumber,
   getOrderByUser,
+  updateOrderStatus,
   // vnpIpn,
   vnpReturn,
 } from '../controllers/order.controller.js';
@@ -27,6 +28,8 @@ router.get('/payment/vnpay_return', vnpReturn);
 router.get('/:id', getOrderById);
 
 router.post('/', auth, createOrder);
+
+router.put('/update-status/:id', updateOrderStatus);
 
 // router.post('/payment/create_payment_url', createOnlinePayment);
 

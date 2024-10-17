@@ -10,6 +10,7 @@ import {
   generatePaymentUrl,
   handlePaymentReturn,
 } from '../services/payment.service.js';
+import { populate } from 'dotenv';
 
 export const createOrder = async (req, res) => {
   try {
@@ -153,11 +154,21 @@ export const getAllOrders = async (req, res) => {
     const limitNumber = parseInt(limit, 10);
 
     const orders = await Order.find(query)
-      .populate('user', 'fullname')
+      .populate('user', 'fullname email phone')
       .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
       .populate('paymentMethod')
-      .populate('orderDetail', 'product quantity itemPrice')
+      .populate({
+        path: 'orderDetail',
+        populate: {
+          path: 'product',
+          select: 'productName productImagePath',
+          populate: {
+            path: 'discount',
+            select: 'discountPercent',
+          }
+        },
+      })
       .populate('orderStatus')
       .skip((pageNumber - 1) * limitNumber)
       .limit(parseInt(limitNumber));
@@ -254,6 +265,62 @@ export const getOrderByUser = async (req, res) => {
         currentPage: pageNumber,
         limit: limitNumber,
       },
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
+
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const { id: orderId } = req.params;
+    const { orderStatus } = req.body;
+
+    if (!isValidObjectId(orderId)) {
+      return res.status(400).json({
+        error: 'Invalid order id',
+
+      });
+    }
+
+    if (!isValidObjectId(orderStatus)) {
+      return res.status(400).json({
+        error: 'Invalid order status id',
+      });
+    }
+
+    const existingOrder = await Order.findById(orderId);
+
+    if (!existingOrder) {
+      return res.status(404).json({
+        error: 'Order not found',
+      });
+    }
+
+    existingOrder.orderStatus = orderStatus;
+    await existingOrder.save();
+
+    const updatedOrder = await Order.findById(existingOrder._id)
+    .populate('user', 'fullname email phone')
+    .populate('shippingAddress', '-isDefault -phone')
+    .populate('shippingMethod')
+    .populate('paymentMethod')
+    .populate({
+      path: 'orderDetail',
+      populate: {
+        path: 'product',
+        select: 'productName productImagePath',
+        populate: {
+          path: 'discount',
+          select: 'discountPercent',
+        }
+      },
+    })
+    .populate('orderStatus');
+
+    res.status(200).json({
+      data: updatedOrder,
       error: false,
     });
   } catch (error) {
