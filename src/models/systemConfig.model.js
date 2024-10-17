@@ -64,7 +64,7 @@ const systemConfigSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    bannerImgPath: [
+    banners: [
       {
         type: mongoose.Types.ObjectId,
         ref: 'Banner',

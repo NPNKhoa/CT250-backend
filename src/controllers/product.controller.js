@@ -8,8 +8,7 @@ export const getAllProducts = async (req, res) => {
   try {
     const {
       searchString = '',
-      productType = '',
-      brand = '',
+      category = '',
       minPrice = null,
       maxPrice = null,
       page = 1,
@@ -17,8 +16,6 @@ export const getAllProducts = async (req, res) => {
       isDesc = false,
       sortBy = 'price',
     } = req.query;
-
-    const brandArray = brand ? brand.split(',') : [];
 
     const query = {};
 
@@ -87,18 +84,10 @@ export const getAllProducts = async (req, res) => {
       { $match: query },
       {
         $lookup: {
-          from: 'producttypes',
-          localField: 'productType',
+          from: 'categories',
+          localField: 'category',
           foreignField: '_id',
-          as: 'productTypeDetails',
-        },
-      },
-      {
-        $lookup: {
-          from: 'brands',
-          localField: 'productBrand',
-          foreignField: '_id',
-          as: 'brandDetails',
+          as: 'categoryDetails',
         },
       },
       {
@@ -109,27 +98,19 @@ export const getAllProducts = async (req, res) => {
           as: 'discountDetails',
         },
       },
-      { $unwind: '$productTypeDetails' },
-      { $unwind: '$brandDetails' },
+      { $unwind: '$categoryDetails' },
       {
         $unwind: { path: '$discountDetails', preserveNullAndEmptyArrays: true },
       },
     ];
 
-    if (productType) {
+    if (category) {
       pipeline.push({
-        $match: { 'productTypeDetails.productTypeName': productType },
-      });
-    }
-
-    if (Array.isArray(brandArray) && brandArray.length > 0) {
-      pipeline.push({
-        $match: { 'brandDetails.brandName': { $in: brandArray } },
+        $match: { 'categoryDetails.categoryName': category },
       });
     }
 
     let sortStage = {};
-
     if (sortBy) {
       const sortDirection = isDesc === 'true' ? -1 : 1;
       sortStage = { $sort: { [sortBy]: sortDirection } };
