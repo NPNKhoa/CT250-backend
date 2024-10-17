@@ -30,7 +30,7 @@ const ProductTypeSchema = new mongoose.Schema(
   }
 );
 
-const categorySchema = new mongoose.Schema({
+const CategorySchema = new mongoose.Schema({
   categoryName: {
     type: String,
     default: '',
@@ -38,14 +38,16 @@ const categorySchema = new mongoose.Schema({
   productType: {
     type: mongoose.Types.ObjectId,
     ref: 'ProductType',
-    default: '',
   },
   brand: {
     type: mongoose.Types.ObjectId,
     ref: 'Brand',
-    default: '',
   },
-});
+
+},
+  {
+    timestamps: true,
+  });
 
 const PromotionSchema = new mongoose.Schema(
   {
@@ -189,7 +191,7 @@ const ProductSchema = new mongoose.Schema(
 
 const Brand = mongoose.model('Brand', BrandSchema);
 const ProductType = mongoose.model('ProductType', ProductTypeSchema);
-const Category = mongoose.model('Category', categorySchema);
+const Category = mongoose.model('Category', CategorySchema);
 const Promotion = mongoose.model('Promotion', PromotionSchema);
 const Discount = mongoose.model('Discount', DiscountSchema);
 const Specification = mongoose.model('Specification', SpecificationSchema);
