@@ -52,8 +52,12 @@ export const createCategory = async (req, res) => {
     await newCategory.save();
     console.log(newCategory);
 
+    const category = await Category.findById(newCategory._id)
+      .populate('productType')
+      .populate('brand');
+
     res.status(201).json({
-      data: newCategory,
+      data: category,
       error: false,
     });
   } catch (error) {
@@ -61,11 +65,75 @@ export const createCategory = async (req, res) => {
   }
 };
 
+export const updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { productType, brand } = req.body;
+
+    if (!id || !isValidObjectId(id)) {
+      return res.status(400).json({
+        error: 'Invalid id',
+      });
+    }
+
+    const existingProductType = await ProductType.findById(productType);
+
+    if (!existingProductType) {
+      return res.status(400).json({
+        error: 'Not found product type',
+      });
+    }
+
+    const existingBrand = await Brand.findById(brand);
+
+    if (!existingBrand) {
+      return res.status(400).json({
+        error: 'Not found brand',
+      });
+    }
+
+    const updatedCategory = await Category.findByIdAndUpdate(
+      id,
+      { productType, brand },
+      { new: true }
+    );
+
+    if (!updatedCategory) {
+      return res.status(404).json({
+        error: 'Category not found',
+      });
+    }
+
+    console.log();
+
+    const categoryName = `${existingProductType.productTypeName} ${existingBrand.brandName}`;
+    updatedCategory.categoryName = categoryName;
+
+    await updatedCategory.save();
+
+    const category = await Category.findById(updatedCategory._id)
+      .populate('productType')
+      .populate('brand');
+
+    res.status(200).json({
+      data: category,
+      error: false,
+    });
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({
+      error: 'An error occurred while updating the category',
+    });
+  }
+};
+
+
+
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (id && !isValidObjectId(id)) {
+    if (!id && !isValidObjectId(id)) {
       return res.status(400).json({
         error: 'Invalid id',
       });
@@ -79,7 +147,10 @@ export const deleteCategory = async (req, res) => {
       });
     }
 
-    res.sendStatus(204);
+    res.status(200).json({
+      message: 'Delete success',
+      error: false,
+    });
   } catch (error) {
     logError(error, res);
   }
