@@ -25,7 +25,15 @@ export const getAllCategory = async (_, res) => {
 
 export const createCategory = async (req, res) => {
   try {
-    const { productType, brand } = req.body; // objectId
+    let { categoryName, productType, brand } = req.body; // objectId
+
+    const existingCategory = await Category.findOne({ categoryName });
+
+    if (existingCategory) {
+      return res.status(400).json({
+        error: 'Category already exists',
+      });
+    }
 
     const existingProductType = await ProductType.findById(productType);
 
@@ -43,11 +51,12 @@ export const createCategory = async (req, res) => {
       });
     }
 
-    const newCategory = await Category.create({ productType, brand });
 
-    const categoryName = `${existingProductType.productTypeName} ${existingBrand.brandName}`;
+    if (!categoryName) {
+      categoryName = `${existingProductType.productTypeName} ${existingBrand.brandName}`;
+    }
 
-    newCategory.categoryName = categoryName;
+    const newCategory = await Category.create({ categoryName, productType, brand });
 
     await newCategory.save();
     console.log(newCategory);
@@ -68,7 +77,15 @@ export const createCategory = async (req, res) => {
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { productType, brand } = req.body;
+    let { categoryName, productType, brand } = req.body;
+
+    const existingCategory = await Category.findOne({ categoryName });
+
+    if (existingCategory) {
+      return res.status(400).json({
+        error: 'Category already exists',
+      });
+    }
 
     if (!id || !isValidObjectId(id)) {
       return res.status(400).json({
@@ -92,9 +109,13 @@ export const updateCategory = async (req, res) => {
       });
     }
 
+    if (!categoryName) {
+      categoryName = `${existingProductType.productTypeName} ${existingBrand.brandName}`;
+    }
+
     const updatedCategory = await Category.findByIdAndUpdate(
       id,
-      { productType, brand },
+      { categoryName, productType, brand },
       { new: true }
     );
 
@@ -103,11 +124,6 @@ export const updateCategory = async (req, res) => {
         error: 'Category not found',
       });
     }
-
-    console.log();
-
-    const categoryName = `${existingProductType.productTypeName} ${existingBrand.brandName}`;
-    updatedCategory.categoryName = categoryName;
 
     await updatedCategory.save();
 
