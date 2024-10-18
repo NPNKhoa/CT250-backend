@@ -116,7 +116,10 @@ export const handlePaymentReturn = async (vnpParams) => {
 
   await Order.findByIdAndUpdate(
     orderId,
-    { paymentStatus: true },
+    {
+      paymentStatus: true,
+      paidDate: new Date()
+    },
     { new: true, runValidators: true }
   );
 
