@@ -140,7 +140,6 @@ const ProductSchema = new mongoose.Schema(
     category: {
       type: mongoose.Types.ObjectId,
       ref: 'Category',
-      default: '',
     },
     discount: {
       type: mongoose.Types.ObjectId,

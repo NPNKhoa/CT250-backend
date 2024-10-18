@@ -179,7 +179,20 @@ export const getProductById = async (req, res) => {
           },
         ],
       })
-      .populate('discount', 'discountPercent discountExpiredDate -_id');
+      .populate('discount', 'discountPercent discountExpiredDate -_id')
+      .populate(
+        {
+          path: 'category',
+          populate: {
+            path: 'productType',
+            select: 'productTypeName -_id',
+          },
+          populate: {
+            path: 'brand',
+            select: 'brandName -_id',
+          }
+        }
+      );
 
     if (!product) {
       return res.status(404).json({
