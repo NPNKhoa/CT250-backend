@@ -85,21 +85,72 @@ export const updateConfig = async (req, res) => {
       shopPriceFilter = prevConfig.shopPriceFilter;
     }
 
+    const currentBanners = await Banner.find();
+
+    let banners =
+      Array.isArray(currentBanners) &&
+      currentBanners.map((filter) => filter._id);
+
+    if (Array.isArray(banners) && banners.length === 0) {
+      banners = prevConfig.banners;
+    }
+
+    const currentCoreValues = await CoreValue.find();
+
+    let coreValue =
+      Array.isArray(currentCoreValues) &&
+      currentCoreValues.map((filter) => filter._id);
+
+    if (Array.isArray(coreValue) && coreValue.length === 0) {
+      coreValue = prevConfig.coreValue;
+    }
+
+    const currentFounders = await Founder.find();
+
+    let founders =
+      Array.isArray(currentFounders) &&
+      currentFounders.map((filter) => filter._id);
+
+    if (Array.isArray(founders) && founders.length === 0) {
+      founders = prevConfig.founders;
+    }
+
+    const currentPercentFilters = await PercentFilter.find();
+
+    let shopPercentFilter =
+      Array.isArray(currentPercentFilters) &&
+      currentPercentFilters.map((filter) => filter._id);
+
+    if (Array.isArray(shopPercentFilter) && shopPercentFilter.length === 0) {
+      shopPercentFilter = prevConfig.shopPercentFilter;
+    }
+
     const newConfig = await SystemConfig.create({
       shopName: shopName || prevConfig.shopName,
+      shopLogoImgPath: shopLogoImgPath || prevConfig.shopLogoImgPath,
+      banners,
       shopEmail: shopEmail || prevConfig.shopEmail,
       shopPhoneNumber: shopPhoneNumber || prevConfig.shopPhoneNumber,
-      shopLogoImgPath: shopLogoImgPath || prevConfig.shopLogoImgPath,
       shopIntroduction: shopIntroduction || prevConfig.shopIntroduction,
       shopPriceFilter,
+      shopPercentFilter,
+      coreValue,
+      founders,
       isChoose: true,
     });
 
     prevConfig.isChoose = false;
     await prevConfig.save();
 
+    const responseConfig = await SystemConfig.findOne({ isChoose: true })
+      .populate('shopPriceFilter')
+      .populate('banners')
+      .populate('shopPercentFilter')
+      .populate('coreValue')
+      .populate('founders');
+
     res.status(200).json({
-      data: newConfig,
+      data: responseConfig,
       error: false,
     });
   } catch (error) {
@@ -140,7 +191,12 @@ export const backupConfig = async (_, res) => {
       SystemConfig.findByIdAndUpdate(applyConfig?._id, { isChoose: true }),
     ]);
 
-    const responseConfig = await SystemConfig.findOne({ isChoose: true });
+    const responseConfig = await SystemConfig.findOne({ isChoose: true })
+      .populate('shopPriceFilter')
+      .populate('banners')
+      .populate('shopPercentFilter')
+      .populate('coreValue')
+      .populate('founders');
 
     return res.status(200).json({
       data: responseConfig,
@@ -179,6 +235,16 @@ export const addFilterPercent = async (req, res) => {
       fromValue,
       toValue,
     });
+
+    const currentConfig = await SystemConfig.findOne({ isChoose: true });
+
+    if (!currentConfig) {
+      return res.sendStatus(400);
+    }
+
+    currentConfig.coreValue.push(newPercentFilter._id);
+
+    await currentConfig.save();
 
     res.status(201).json({
       data: newPercentFilter,

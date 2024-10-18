@@ -79,7 +79,7 @@ export const createPriceFilter = async (req, res) => {
       systemConfig.shopPriceFilter.push(newPriceFilter._id);
       await systemConfig.save();
     } else {
-      return res.status(500).json({
+      return res.status(400).json({
         error: 'No SystemConfig found',
       });
     }
