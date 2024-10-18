@@ -155,9 +155,10 @@ export const getAllOrders = async (req, res) => {
 
     const orders = await Order.find(query)
       .populate('user', 'fullname email phone')
-      .populate('shippingAddress', '-isDefault -phone')
+      .populate('shippingAddress', '-isDefault')
       .populate('shippingMethod')
       .populate('paymentMethod')
+      .populate('voucher', 'discountPercent')
       .populate({
         path: 'orderDetail',
         populate: {
@@ -230,14 +231,19 @@ export const getOrderByUser = async (req, res) => {
 
     const order = await Order.find(query)
       .populate('user', 'fullname')
-      .populate('shippingAddress', '-isDefault -phone')
+      .populate('shippingAddress', '-isDefault')
       .populate('shippingMethod')
       .populate('paymentMethod')
+      .populate('voucher', 'discountPercent')
       .populate({
         path: 'orderDetail',
         populate: {
           path: 'product',
           select: 'productName productImagePath',
+          populate: {
+            path: 'discount',
+            select: 'discountPercent',
+          }
         },
       })
       .populate({
@@ -299,13 +305,18 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     existingOrder.orderStatus = orderStatus;
+    if (orderStatus === '6710b30f130cc0804e87c9a7') {
+      existingOrder.paymentStatus = true;
+      existingOrder.paidDate = new Date();
+    }
     await existingOrder.save();
 
     const updatedOrder = await Order.findById(existingOrder._id)
     .populate('user', 'fullname email phone')
-    .populate('shippingAddress', '-isDefault -phone')
+    .populate('shippingAddress', '-isDefault')
     .populate('shippingMethod')
     .populate('paymentMethod')
+    .populate('voucher', 'discountPercent')
     .populate({
       path: 'orderDetail',
       populate: {
