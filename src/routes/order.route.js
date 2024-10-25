@@ -5,6 +5,7 @@ import {
   // createOnlinePayment,
   createOrder,
   getAllOrders,
+  getLastOrders,
   getOrderById,
   getOrderByPhoneNumber,
   getOrderByUser,
@@ -16,6 +17,8 @@ import {
 const router = express.Router();
 
 router.get('/', getAllOrders);
+
+router.get('/latestorder', getLastOrders);
 
 router.get('/by-phone', getOrderByPhoneNumber);
 

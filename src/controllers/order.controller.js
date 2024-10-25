@@ -167,7 +167,7 @@ export const getAllOrders = async (req, res) => {
           populate: {
             path: 'discount',
             select: 'discountPercent',
-          }
+          },
         },
       })
       .populate('orderStatus')
@@ -243,7 +243,7 @@ export const getOrderByUser = async (req, res) => {
           populate: {
             path: 'discount',
             select: 'discountPercent',
-          }
+          },
         },
       })
       .populate({
@@ -286,7 +286,6 @@ export const updateOrderStatus = async (req, res) => {
     if (!isValidObjectId(orderId)) {
       return res.status(400).json({
         error: 'Invalid order id',
-
       });
     }
 
@@ -312,23 +311,23 @@ export const updateOrderStatus = async (req, res) => {
     await existingOrder.save();
 
     const updatedOrder = await Order.findById(existingOrder._id)
-    .populate('user', 'fullname email phone')
-    .populate('shippingAddress', '-isDefault')
-    .populate('shippingMethod')
-    .populate('paymentMethod')
-    .populate('voucher', 'discountPercent')
-    .populate({
-      path: 'orderDetail',
-      populate: {
-        path: 'product',
-        select: 'productName productImagePath',
+      .populate('user', 'fullname email phone')
+      .populate('shippingAddress', '-isDefault')
+      .populate('shippingMethod')
+      .populate('paymentMethod')
+      .populate('voucher', 'discountPercent')
+      .populate({
+        path: 'orderDetail',
         populate: {
-          path: 'discount',
-          select: 'discountPercent',
-        }
-      },
-    })
-    .populate('orderStatus');
+          path: 'product',
+          select: 'productName productImagePath',
+          populate: {
+            path: 'discount',
+            select: 'discountPercent',
+          },
+        },
+      })
+      .populate('orderStatus');
 
     res.status(200).json({
       data: updatedOrder,
@@ -590,3 +589,42 @@ export const vnpReturn = async (req, res) => {
 //     logError(error, res);
 //   }
 // };
+
+export const getLastOrders = async (req, res) => {
+  try {
+    // Lấy số lượng đơn hàng mới từ tham số truy vấn (mặc định là 3)
+    const limit = parseInt(req.query.limit) || 3;
+
+    const latestOrders = await Order.find({})
+      .sort({ orderDate: -1 })
+      .limit(limit) // Giới hạn số lượng đơn hàng được trả về
+      .populate('user', 'fullname email')
+      .populate('shippingAddress', '-isDefault')
+      .populate('shippingMethod')
+      .populate('paymentMethod')
+      .populate('orderStatus', 'orderStatus')
+      .populate({
+        path: 'orderDetail',
+        populate: {
+          path: 'product',
+          select: 'productName productImagePath',
+          populate: {
+            path: 'discount',
+            select: 'discountPercent',
+          },
+        },
+      })
+      .populate('voucher', 'discountPercent');
+
+    if (!latestOrders.length) {
+      return res.status(404).json({ error: 'No orders found' });
+    }
+
+    res.status(200).json({
+      data: latestOrders,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
