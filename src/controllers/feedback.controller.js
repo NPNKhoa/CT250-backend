@@ -73,3 +73,19 @@ export const createFeedback = async (req, res) => {
     logError(error, res);
   }
 };
+
+export const getLatestFeedback = async (req, res) => {
+  try {
+    const feedbacks = await Feedback.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .exec();
+
+    return res.status(200).json(feedbacks);
+  } catch (error) {
+    console.error('Error fetching feedback:', error);
+    return res
+      .status(500)
+      .json({ message: 'An error occurred while fetching feedback' });
+  }
+};
