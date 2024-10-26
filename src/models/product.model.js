@@ -175,7 +175,7 @@ const ProductSchema = new mongoose.Schema(
       default: 0,
     },
     description: {
-      type: Array,
+      type: String,
       required: true,
     },
     avgStar: {
