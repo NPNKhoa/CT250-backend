@@ -349,7 +349,7 @@ export const getOrderById = async (req, res) => {
     }
 
     const existingOrder = await Order.findById(orderId)
-      .populate('user', 'fullname')
+      .populate('user', 'fullname  email phone')
       .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
       .populate('paymentMethod')
