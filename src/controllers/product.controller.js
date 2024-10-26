@@ -82,7 +82,7 @@ export const getAllProducts = async (req, res) => {
 
     const pipeline = [{ $match: query }];
 
-    if (category && category.trim() !== '') {
+    // if (category && category.trim() !== '') {
       pipeline.push({
         $lookup: {
           from: 'categories',
@@ -97,7 +97,17 @@ export const getAllProducts = async (req, res) => {
           'categoryDetails.categoryName': { $regex: category, $options: 'i' },
         },
       });
-    }
+    // }
+
+    pipeline.push({
+      $lookup: {
+        from: 'discounts',
+        localField: 'discount',
+        foreignField: '_id',
+        as: 'discountDetails',
+      },
+    });
+    pipeline.push({ $unwind: '$discountDetails' });
 
     let sortStage = {};
 
@@ -180,19 +190,19 @@ export const getProductById = async (req, res) => {
         ],
       })
       .populate('discount', 'discountPercent discountExpiredDate -_id')
-      .populate(
-        {
-          path: 'category',
-          populate: {
+      .populate({
+        path: 'category',
+        populate: [
+          {
             path: 'productType',
             select: 'productTypeName -_id',
           },
-          populate: {
+          {
             path: 'brand',
             select: 'brandName -_id',
-          }
-        }
-      );
+          },
+        ],
+      });
 
     if (!product) {
       return res.status(404).json({
@@ -244,11 +254,22 @@ export const addProduct = async (req, res) => {
     const newProduct = await Product.create(productInfo);
 
     const populatedProduct = await Product.findById(newProduct._id)
-      .populate('productBrand')
-      .populate('productType')
       .populate('discount')
       .populate('promotion')
-      .populate('technicalSpecification.specificationName');
+      .populate('technicalSpecification.specificationName')
+      .populate({
+        path: 'category',
+        populate: [
+          {
+            path: 'productType',
+            select: 'productTypeName -_id',
+          },
+          {
+            path: 'brand',
+            select: 'brandName -_id',
+          },
+        ],
+      });
 
     res.status(201).json({
       data: populatedProduct,
@@ -283,10 +304,8 @@ export const updateProduct = async (req, res) => {
 
     updateFields.productName =
       payload.productName || existingProduct.productName;
-    updateFields.productBrand =
-      payload.productBrand || existingProduct.productBrand;
-    updateFields.productType =
-      payload.productType || existingProduct.productType;
+    updateFields.category =
+      payload.category || existingProduct.category;
     updateFields.discount = payload.discount || existingProduct.discount;
     updateFields.promotion = payload.promotion || existingProduct.promotion;
     updateFields.technicalSpecification =
@@ -310,11 +329,22 @@ export const updateProduct = async (req, res) => {
       { $set: updateFields },
       { new: true, runValidators: true }
     )
-      .populate('productBrand')
-      .populate('productType')
       .populate('discount')
       .populate('promotion')
-      .populate('technicalSpecification.specificationName');
+      .populate('technicalSpecification.specificationName')
+      .populate({
+        path: 'category',
+        populate: [
+          {
+            path: 'productType',
+            select: 'productTypeName -_id',
+          },
+          {
+            path: 'brand',
+            select: 'brandName -_id',
+          },
+        ],
+      });
 
     if (!updatedProduct) {
       return res.status(404).json({
