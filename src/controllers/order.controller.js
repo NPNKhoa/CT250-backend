@@ -158,7 +158,7 @@ export const getAllOrders = async (req, res) => {
       .populate('shippingAddress', '-isDefault')
       .populate('shippingMethod')
       .populate('paymentMethod')
-      .populate('voucher', 'discountPercent')
+      .populate('voucher', 'discountPercent maxPriceDiscount expiredDate')
       .populate({
         path: 'orderDetail',
         populate: {
@@ -352,6 +352,7 @@ export const getOrderById = async (req, res) => {
       .populate('user', 'fullname  email phone')
       .populate('shippingAddress', '-isDefault -phone')
       .populate('shippingMethod')
+      .populate('voucher', 'discountPercent maxPriceDiscount expiredDate')
       .populate('paymentMethod')
       .populate({
         path: 'orderDetail',
