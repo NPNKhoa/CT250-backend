@@ -1,7 +1,6 @@
 import {
-  Brand,
+  Category,
   Discount,
-  ProductType,
   Promotion,
   Specification,
 } from '../models/product.model.js';
@@ -92,10 +91,9 @@ export const productValidation = async (productInfo) => {
     };
   }
 
-  const technicalSpecs = [];
   if (technicalSpecification || Array.isArray(technicalSpecification)) {
     for (const specification of technicalSpecification) {
-      const { specificationName, specificationDesc } = specification;
+      const { specificationName } = specification;
 
       const existingSpecificationName = await Specification.findById(
         specificationName
@@ -107,11 +105,6 @@ export const productValidation = async (productInfo) => {
           payload: 'Specification name not found!',
         };
       }
-
-      // technicalSpecs.push({
-      //   specificationName,
-      //   specificationDesc,
-      // });
     }
   }
 
