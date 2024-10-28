@@ -83,20 +83,20 @@ export const getAllProducts = async (req, res) => {
     const pipeline = [{ $match: query }];
 
     // if (category && category.trim() !== '') {
-      pipeline.push({
-        $lookup: {
-          from: 'categories',
-          localField: 'category',
-          foreignField: '_id',
-          as: 'categoryDetails',
-        },
-      });
-      pipeline.push({ $unwind: '$categoryDetails' });
-      pipeline.push({
-        $match: {
-          'categoryDetails.categoryName': { $regex: category, $options: 'i' },
-        },
-      });
+    pipeline.push({
+      $lookup: {
+        from: 'categories',
+        localField: 'category',
+        foreignField: '_id',
+        as: 'categoryDetails',
+      },
+    });
+    pipeline.push({ $unwind: '$categoryDetails' });
+    pipeline.push({
+      $match: {
+        'categoryDetails.categoryName': { $regex: category, $options: 'i' },
+      },
+    });
     // }
 
     pipeline.push({
@@ -304,8 +304,7 @@ export const updateProduct = async (req, res) => {
 
     updateFields.productName =
       payload.productName || existingProduct.productName;
-    updateFields.category =
-      payload.category || existingProduct.category;
+    updateFields.category = payload.category || existingProduct.category;
     updateFields.discount = payload.discount || existingProduct.discount;
     updateFields.promotion = payload.promotion || existingProduct.promotion;
     updateFields.technicalSpecification =

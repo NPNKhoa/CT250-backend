@@ -125,7 +125,7 @@ export const updateConfig = async (req, res) => {
       shopPercentFilter = prevConfig.shopPercentFilter;
     }
 
-    const newConfig = await SystemConfig.create({
+    await SystemConfig.create({
       shopName: shopName || prevConfig.shopName,
       shopLogoImgPath: shopLogoImgPath || prevConfig.shopLogoImgPath,
       banners,
@@ -169,16 +169,16 @@ export const backupConfig = async (_, res) => {
     }
 
     if (allConfigs.length < 2) {
-      return res.status(404).json({
+      return res.status(400).json({
         error: 'No more config for backup',
       });
     }
 
-    const deletedConfig = allConfigs.find((config) => config.isChoose === true);
+    const deletedConfig = allConfigs.findOne(
+      (config) => config.isChoose === true
+    );
 
-    const applyConfig = await SystemConfig.findOne({ isChoose: false }).sort({
-      createdAt: -1,
-    });
+    const applyConfig = await SystemConfig.findOne({ isChoose: false });
 
     if (!applyConfig) {
       return res.status(404).json({
@@ -186,10 +186,8 @@ export const backupConfig = async (_, res) => {
       });
     }
 
-    await Promise.all([
-      SystemConfig.findByIdAndDelete(deletedConfig?._id),
-      SystemConfig.findByIdAndUpdate(applyConfig?._id, { isChoose: true }),
-    ]);
+    await SystemConfig.findByIdAndDelete(deletedConfig?._id);
+    await SystemConfig.findByIdAndUpdate(applyConfig?._id, { isChoose: true });
 
     const responseConfig = await SystemConfig.findOne({ isChoose: true })
       .populate('shopPriceFilter')
@@ -349,40 +347,77 @@ export const addBanner = async (req, res) => {
   }
 };
 
-export const updateActiveBanner = async (req, res) => {
+export const updateActiveBanners = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { activeIds, oldIds } = req.body;
 
-    if (id && !isValidObjectId(id)) {
+    console.log('active', activeIds);
+    console.log('old', oldIds);
+
+    if (
+      !Array.isArray(activeIds) ||
+      !Array.isArray(oldIds) ||
+      (activeIds.length === 0 && oldIds.length === 0)
+    ) {
       return res.status(400).json({
-        error: 'INvalid id',
+        error: 'Please provide at least one banner ID to update.',
       });
     }
 
-    const existingBanner = await Banner.findById(id);
+    for (const id of [...activeIds, ...oldIds]) {
+      if (id && !isValidObjectId(id)) {
+        return res.status(400).json({
+          error: `Invalid id: ${id}`,
+        });
+      }
+    }
 
-    if (!existingBanner) {
+    const existingBanners = await Banner.find();
+
+    if (!existingBanners.length) {
       return res.status(404).json({
-        error: 'Not found banner',
+        error: 'No banners found',
       });
     }
-
-    existingBanner.isActiveBanner = true;
 
     const currentConfig = await SystemConfig.findOne({ isChoose: true });
 
     if (!currentConfig) {
       return res.status(404).json({
-        error: 'Not found',
+        error: 'System configuration not found',
       });
     }
 
-    currentConfig.banners.push(existingBanner._id);
+    const bannerUpdates = existingBanners.map(async (banner) => {
+      const isActive = activeIds.includes(banner._id.toString());
+      const isOld = oldIds.includes(banner._id.toString());
 
-    await Promise.all([existingBanner.save(), currentConfig.save()]);
+      if (
+        (isActive && !banner.isActiveBanner) ||
+        (isOld && banner.isActiveBanner)
+      ) {
+        banner.isActiveBanner = isActive;
 
-    res.status(200).json({
-      data: currentConfig.banners,
+        if (isActive) {
+          if (!currentConfig.banners.includes(banner._id)) {
+            currentConfig.banners.push(banner._id);
+          }
+        } else {
+          currentConfig.banners = currentConfig.banners.filter(
+            (configBannerId) =>
+              configBannerId.toString() !== banner._id.toString()
+          );
+        }
+
+        return banner.save();
+      }
+    });
+
+    await Promise.all(bannerUpdates);
+    await currentConfig.save();
+
+    return res.status(200).json({
+      data: currentConfig,
       error: false,
     });
   } catch (error) {

@@ -18,7 +18,7 @@ import {
   getCurrentConfig,
   getFilterPercent,
   getFounder,
-  updateActiveBanner,
+  updateActiveBanners,
   updateConfig,
 } from '../controllers/systemConfig.controller.js';
 
@@ -57,7 +57,7 @@ router.put(
   updateConfig
 );
 
-router.put('/banners/active/:id', updateActiveBanner);
+router.put('/banners/active', updateActiveBanners);
 
 router.delete('/founder/:id', deleteFounder);
 
