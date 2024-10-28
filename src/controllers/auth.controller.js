@@ -436,3 +436,56 @@ export const verifyEmail = async (req, res) => {
     });
   }
 };
+
+export const loginAdminPage = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Kiểm tra các trường bắt buộc
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Missing required fields!' });
+    }
+
+    // Tìm kiếm người dùng theo email
+    const existingUser = await User.findOne({ email }).populate('role');
+
+    if (!existingUser) {
+      return res.status(404).json({ error: 'User not found!' });
+    }
+
+    // So sánh mật khẩu
+    const isMatch = await bcrypt.compare(password, existingUser.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid credentials!' });
+    }
+
+    // Kiểm tra vai trò người dùng
+    const allowedRoles = ['Quản trị viên', 'Nhân viên'];
+    if (!allowedRoles.includes(existingUser.role.role)) {
+      return res.status(403).json({
+        error: 'Access denied! Only admin and staff can login.',
+      });
+    }
+
+    // Tạo token truy cập
+    const { accessToken, refreshToken } = generateToken({
+      userId: existingUser._id,
+    });
+
+    // Cập nhật refresh token trong database
+    existingUser.refreshToken = refreshToken;
+    await existingUser.save();
+
+    res.status(200).json({
+      data: {
+        userId: existingUser._id,
+        accessToken,
+        refreshToken,
+      },
+      error: false,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
