@@ -101,43 +101,43 @@ export const getAllProducts = async (req, res) => {
       });
     }
 
-    if ((brand && brand.trim() !== '') || matchedBrands) {
-      const allBrands = await mongoose.connection.db
-        .collection('brands')
-        .find({})
-        .toArray();
+    // if ((brand && brand.trim() !== '') || matchedBrands) {
+    //   const allBrands = await mongoose.connection.db
+    //     .collection('brands')
+    //     .find({})
+    //     .toArray();
 
-      const matchedBrand = allBrands.find((brandItem) =>
-        brandItem.brandName.toLowerCase().includes(brand.toLowerCase())
-      );
+    //   const matchedBrand = allBrands.find((brandItem) =>
+    //     brandItem.brandName.toLowerCase().includes(brand.toLowerCase())
+    //   );
 
-      matchedBrands = matchedBrand._id;
+    //   matchedBrands = matchedBrand._id;
 
-      pipeline.push({
-        $match: {
-          'categoryDetails.brand': matchedBrands,
-        }
-      });
-    }
+    //   pipeline.push({
+    //     $match: {
+    //       'categoryDetails.brand': matchedBrands,
+    //     }
+    //   });
+    // }
 
-    if ((productType && productType.trim() !== '') || matchedProductTypes) {
-      const allProductTypes = await mongoose.connection.db
-        .collection('producttypes')
-        .find({})
-        .toArray();
+    // if ((productType && productType.trim() !== '') || matchedProductTypes) {
+    //   const allProductTypes = await mongoose.connection.db
+    //     .collection('producttypes')
+    //     .find({})
+    //     .toArray();
 
-      const matchedProductType = allProductTypes.find((type) =>
-        type.productTypeName.toLowerCase().includes(productType)
-      );
+    //   const matchedProductType = allProductTypes.find((type) =>
+    //     type.productTypeName.toLowerCase().includes(productType)
+    //   );
 
-      matchedProductTypes = matchedProductType._id;
+    //   matchedProductTypes = matchedProductType._id;
 
-      pipeline.push({
-        $match: {
-          'categoryDetails.productType': matchedProductTypes,
-        }
-      });
-    }
+    //   pipeline.push({
+    //     $match: {
+    //       'categoryDetails.productType': matchedProductTypes,
+    //     }
+    //   });
+    // }
 
     pipeline.push({
       $lookup: {
