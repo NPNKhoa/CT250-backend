@@ -492,15 +492,15 @@ export const loginAdminPage = async (req, res) => {
 
 export const updateRole = async (req, res) => {
   try {
-    const { userId } = req.userId;
+    const { userId: adminId } = req.userId;
 
-    if (!userId) {
+    if (!adminId) {
       return res.status(401).json({
         error: 'Invalid credentials',
       });
     }
 
-    const { newRoleId } = req.body;
+    const { userId, newRoleId } = req.body;
 
     // Kiểm tra vai trò mới có tồn tại không
     const newRole = await UserRole.findById(newRoleId);
