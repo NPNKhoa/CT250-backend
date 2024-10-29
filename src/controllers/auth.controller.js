@@ -489,3 +489,45 @@ export const loginAdminPage = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const updateRole = async (req, res) => {
+  try {
+    const { userId } = req.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Invalid credentials',
+      });
+    }
+
+    const { newRoleId } = req.body;
+
+    // Kiểm tra vai trò mới có tồn tại không
+    const newRole = await UserRole.findById(newRoleId);
+    if (!newRole) {
+      return res.status(404).json({
+        error: 'Role not found',
+      });
+    }
+
+    // Tìm người dùng và cập nhật vai trò
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+      });
+    }
+
+    // Cập nhật vai trò của người dùng
+    user.role = newRoleId;
+    await user.save();
+
+    res.status(200).json({
+      message: 'User role updated successfully',
+      data: user,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};

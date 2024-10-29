@@ -10,6 +10,7 @@ import {
   loginWithSocial,
   verifyEmail,
   loginAdminPage,
+  updateRole,
 } from '../controllers/auth.controller.js';
 
 import upload from '../configs/multerConfig.js';
@@ -28,6 +29,8 @@ router.post('/login-with-social', loginWithSocial);
 router.post('/refresh', refreshToken);
 
 router.post('/logout', auth, logout);
+
+router.put('/updaterole', auth, updateRole);
 
 router.post('/add-role', auth, isAdmin, addRole);
 
