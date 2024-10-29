@@ -460,7 +460,7 @@ export const loginAdminPage = async (req, res) => {
     }
 
     // Kiểm tra vai trò người dùng
-    const allowedRoles = ['Quản trị viên', 'Nhân viên'];
+    const allowedRoles = ['admin', 'staff'];
     if (!allowedRoles.includes(existingUser.role.role)) {
       return res.status(403).json({
         error: 'Access denied! Only admin and staff can login.',
