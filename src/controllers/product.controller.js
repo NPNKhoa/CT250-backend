@@ -289,7 +289,7 @@ export const addProduct = async (req, res) => {
       ...payload,
     };
 
-    console.log(productInfo);
+    // console.log(productInfo);
 
     const newProduct = await Product.create(productInfo);
 

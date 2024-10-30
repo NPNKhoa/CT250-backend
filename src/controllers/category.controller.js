@@ -35,20 +35,24 @@ export const createCategory = async (req, res) => {
       });
     }
 
-    const existingProductType = await ProductType.findById(productType);
+    if (productType) {
+      const existingProductType = await ProductType.findById(productType);
 
-    if (!existingProductType) {
-      return res.status(400).json({
-        error: 'Not found product type',
-      });
+      if (!existingProductType) {
+        return res.status(400).json({
+          error: 'Not found product type',
+        });
+      }
     }
 
-    const existingBrand = await Brand.findById(brand);
+    if (brand) {
+      const existingBrand = await Brand.findById(brand);
 
-    if (!existingBrand) {
-      return res.status(400).json({
-        error: 'Not found brand',
-      });
+      if (!existingBrand) {
+        return res.status(400).json({
+          error: 'Not found brand',
+        });
+      }
     }
 
 
@@ -56,7 +60,13 @@ export const createCategory = async (req, res) => {
       categoryName = `${existingProductType.productTypeName} ${existingBrand.brandName}`;
     }
 
-    const newCategory = await Category.create({ categoryName, productType, brand });
+    const data = {
+      categoryName: categoryName,
+      productType: productType ? productType : null,
+      brand: brand ? brand : null
+    }
+
+    const newCategory = await Category.create(data);
 
     await newCategory.save();
     console.log(newCategory);
