@@ -247,8 +247,19 @@ export const getStatisticsByDateRange = async (req, res) => {
       },
       {
         $lookup: {
+          from: 'categories',
+          localField: 'product.category',
+          foreignField: '_id',
+          as: 'category',
+        },
+      },
+      {
+        $unwind: '$category',
+      },
+      {
+        $lookup: {
           from: 'producttypes',
-          localField: 'product.productType',
+          localField: 'category.productType',
           foreignField: '_id',
           as: 'productType',
         },
@@ -290,6 +301,7 @@ export const getStatisticsByDateRange = async (req, res) => {
       },
       { totalRevenue: 0, totalOrders: 0 }
     );
+
     const productTypesList = await ProductType.find().select('productTypeName');
 
     // 4. Xây dựng dữ liệu trả về với các thống kê đã yêu cầu
@@ -309,23 +321,29 @@ export const getStatisticsByDateRange = async (req, res) => {
       };
 
       // Tìm dữ liệu thống kê loại sản phẩm cho ngày đó
-      const productTypeStats =
-        productTypeData.find((data) => data._id === day)?.productTypes || [];
-      const totalProductsSold =
-        productTypeData.find((data) => data._id === day)?.totalProductsSold ||
-        0;
+      const productTypeDataForDay = productTypeData.find(
+        (data) => data._id === day
+      );
+      const productTypeStats = productTypeDataForDay
+        ? productTypeDataForDay.productTypes
+        : [];
+
+      const totalProductsSold = productTypeDataForDay
+        ? productTypeDataForDay.totalProductsSold
+        : 0;
 
       // Sử dụng danh sách loại sản phẩm từ DB thay vì giá trị mặc định
       const finalProductTypes = productTypesList.map((productType) => {
+        // Tìm loại sản phẩm thực tế trong thống kê sản phẩm
         const actualType = productTypeStats.find(
           (type) => type.productType === productType.productTypeName
         );
-        return (
-          actualType || {
-            productType: productType.productTypeName,
-            totalSold: 0,
-          }
-        ); // Nếu không có, giữ giá trị 0
+
+        // Nếu không có loại sản phẩm thực tế, giữ giá trị 0
+        return {
+          productType: productType.productTypeName,
+          totalSold: actualType ? actualType.totalSold : 0,
+        };
       });
 
       // Lấy thông tin tổng đơn hàng theo trạng thái cho ngày đó
@@ -510,8 +528,19 @@ export const getStatisticsByYear = async (req, res) => {
       },
       {
         $lookup: {
+          from: 'categories',
+          localField: 'product.category',
+          foreignField: '_id',
+          as: 'category',
+        },
+      },
+      {
+        $unwind: '$category',
+      },
+      {
+        $lookup: {
           from: 'producttypes',
-          localField: 'product.productType',
+          localField: 'category.productType',
           foreignField: '_id',
           as: 'productType',
         },
