@@ -1,5 +1,6 @@
 import { Order } from '../models/order.model.js';
 import Comment from '../models/comment.model.js';
+import { Product } from '../models/product.model.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 import logError from '../utils/logError.js';
 import { populate } from 'dotenv';
@@ -28,7 +29,7 @@ export const createComment = async (req, res) => {
       });
     }
 
-    if (isNaN(star) && star < 0 && star > 5) {
+    if (isNaN(star) || star < 0 || star > 5) {
       return res.status(400).json({
         error: 'Star must be a number between 0 and 5',
       });
@@ -41,8 +42,8 @@ export const createComment = async (req, res) => {
       match: { product: productId },
     });
 
-    const hasPurchasedProduct = existingOrders.some(order => 
-      order.orderDetail.some(item => item.product.toString() === productId)
+    const hasPurchasedProduct = existingOrders.some((order) =>
+      order.orderDetail.some((item) => item.product.toString() === productId)
     );
 
     if (!hasPurchasedProduct) {
@@ -51,6 +52,7 @@ export const createComment = async (req, res) => {
       });
     }
 
+    // Tạo bình luận mới
     const newComment = await Comment.create({
       user: userId,
       product: productId,
@@ -58,7 +60,13 @@ export const createComment = async (req, res) => {
       star,
     });
 
-    const reviewImagePath = req?.files?.map((file) => file.path); // ĐỂ sau điiii
+    // Tính toán và cập nhật giá trị trung bình đánh giá cho sản phẩm
+    const comments = await Comment.find({ product: productId });
+    const totalStars = comments.reduce((sum, comment) => sum + comment.star, 0);
+    const avgStar = totalStars / comments.length;
+
+    // Cập nhật sản phẩm với giá trị trung bình mới
+    await Product.findByIdAndUpdate(productId, { avgStar });
 
     res.status(201).json({
       data: newComment,
