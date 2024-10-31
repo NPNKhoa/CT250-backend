@@ -13,6 +13,8 @@ export const getAllProducts = async (req, res) => {
       brand = '',
       minPrice = null,
       maxPrice = null,
+      minPercentDiscount = null,
+      maxPercentDiscount = null,
       page = 1,
       limit = 10,
       isDesc = false,
@@ -159,6 +161,23 @@ export const getAllProducts = async (req, res) => {
       },
     });
     pipeline.push({ $unwind: '$discountDetails' });
+
+    if (minPercentDiscount || maxPercentDiscount) {
+      if (minPercentDiscount) {
+        pipeline.push({
+          $match: {
+            'discountDetails.discountPercent': { $gte: parseFloat(minPercentDiscount) },
+          }
+        });
+      }
+      if (maxPercentDiscount) {
+        pipeline.push({
+          $match: {
+            'discountDetails.discountPercent': { $lte: parseFloat(maxPercentDiscount) },
+          }
+        });
+      }
+    }
 
     pipeline.push({
       $lookup: {
