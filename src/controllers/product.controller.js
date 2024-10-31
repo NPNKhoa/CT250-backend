@@ -93,51 +93,62 @@ export const getAllProducts = async (req, res) => {
     });
     pipeline.push({ $unwind: '$categoryDetails' });
 
+    // if (matchedProductTypes.length > 0) {
+    //   pipeline.push({
+    //     $match: {
+    //       'categoryDetails.productType': { $in: matchedProductTypes },
+    //     }
+    //   });
+    // }
+
+    // if (matchedBrands.length > 0) {
+    //   pipeline.push({
+    //     $match: {
+    //       'categoryDetails.productType': { $in: matchedBrands },
+    //     }
+    //   });
+    // }
+
     if (category && category.trim() !== '') {
+      const matchedCategory = await mongoose.connection.db
+        .collection('categories')
+        .findOne({ categoryName: category })
+      console.log(matchedCategory)
       pipeline.push({
         $match: {
-          'categoryDetails.categoryName': { $regex: category, $options: 'i' },
+          'categoryDetails._id': matchedCategory._id,
         }
       });
     }
 
-    // if ((brand && brand.trim() !== '') || matchedBrands) {
-    //   const allBrands = await mongoose.connection.db
-    //     .collection('brands')
-    //     .find({})
-    //     .toArray();
+    if (productType && productType.trim() !== '') {
+      const matchedProductType = await mongoose.connection.db
+        .collection('producttypes')
+        .findOne({ productTypeName: productType })
 
-    //   const matchedBrand = allBrands.find((brandItem) =>
-    //     brandItem.brandName.toLowerCase().includes(brand.toLowerCase())
-    //   );
+      pipeline.push({
+        $match: {
+          'categoryDetails.productType': matchedProductType._id,
+        }
+      });
+    }
 
-    //   matchedBrands = matchedBrand._id;
+    if (brand) {
+      const brands = brand.split(',');
 
-    //   pipeline.push({
-    //     $match: {
-    //       'categoryDetails.brand': matchedBrands,
-    //     }
-    //   });
-    // }
+      const matchedBrands = await mongoose.connection.db
+        .collection('brands')
+        .find({ brandName: { $in: brands } })
+        .toArray();
 
-    // if ((productType && productType.trim() !== '') || matchedProductTypes) {
-    //   const allProductTypes = await mongoose.connection.db
-    //     .collection('producttypes')
-    //     .find({})
-    //     .toArray();
+      const brandIds = matchedBrands.map(b => b._id);
 
-    //   const matchedProductType = allProductTypes.find((type) =>
-    //     type.productTypeName.toLowerCase().includes(productType)
-    //   );
-
-    //   matchedProductTypes = matchedProductType._id;
-
-    //   pipeline.push({
-    //     $match: {
-    //       'categoryDetails.productType': matchedProductTypes,
-    //     }
-    //   });
-    // }
+      pipeline.push({
+        $match: {
+          'categoryDetails.brand': { $in: brandIds },
+        }
+      });
+    }
 
     pipeline.push({
       $lookup: {
@@ -148,6 +159,26 @@ export const getAllProducts = async (req, res) => {
       },
     });
     pipeline.push({ $unwind: '$discountDetails' });
+
+    pipeline.push({
+      $lookup: {
+        from: 'producttypes',
+        localField: 'categoryDetails.productType',
+        foreignField: '_id',
+        as: 'productTypeDetails',
+      },
+    });
+    pipeline.push({ $unwind: '$productTypeDetails' });
+
+    // pipeline.push({
+    //   $lookup: {
+    //     from: 'brands',
+    //     localField: 'categoryDetails.brand',
+    //     foreignField: '_id',
+    //     as: 'brandDetails',
+    //   },
+    // });
+    // pipeline.push({ $unwind: '$brandDetails' });
 
     let sortStage = {};
 
