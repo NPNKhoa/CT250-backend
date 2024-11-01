@@ -25,18 +25,13 @@ export const getAllCategory = async (_, res) => {
 
 export const createCategory = async (req, res) => {
   try {
-    let { categoryName, productType, brand } = req.body; // objectId
+    let { categoryName, productType, brand } = req.body;
 
-    const existingCategory = await Category.findOne({ categoryName });
-
-    if (existingCategory) {
-      return res.status(400).json({
-        error: 'Category already exists',
-      });
-    }
+    let existingProductType = '';
+    let existingBrand = '';
 
     if (productType) {
-      const existingProductType = await ProductType.findById(productType);
+      existingProductType = await ProductType.findById(productType);
 
       if (!existingProductType) {
         return res.status(400).json({
@@ -46,7 +41,7 @@ export const createCategory = async (req, res) => {
     }
 
     if (brand) {
-      const existingBrand = await Brand.findById(brand);
+      existingBrand = await Brand.findById(brand);
 
       if (!existingBrand) {
         return res.status(400).json({
@@ -55,16 +50,23 @@ export const createCategory = async (req, res) => {
       }
     }
 
-
     if (!categoryName) {
       categoryName = `${existingProductType.productTypeName} ${existingBrand.brandName}`;
     }
 
+    const existingCategory = await Category.findOne({ categoryName });
+
+    if (existingCategory) {
+      return res.status(400).json({
+        error: 'Category already exists',
+      });
+    }
+
     const data = {
       categoryName: categoryName,
-      productType: productType ? productType : null,
-      brand: brand ? brand : null
-    }
+      productType: productType || null,
+      brand: brand || null
+    };
 
     const newCategory = await Category.create(data);
 
