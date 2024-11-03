@@ -109,3 +109,38 @@ export const getAllProductComment = async (req, res) => {
     logError(error, res);
   }
 };
+
+export const getAllComments = async (req, res) => {
+  try {
+    // Tìm tất cả các bình luận và populate thông tin người dùng và sản phẩm
+    const comments = await Comment.find()
+      .populate({
+        path: 'user',
+        model: 'User',
+        select: 'fullname', // Lấy tên đầy đủ và hình đại diện của người dùng
+      })
+      .populate({
+        path: 'product',
+        select: 'productName productImagePath',
+      });
+
+    // Định dạng lại dữ liệu trả về
+    const formattedComments = comments.map((comment) => ({
+      id: comment._id,
+      productName: comment.product?.productName || 'Unknown Product',
+      productImage: comment.product?.productImagePath || null,
+      reviewer: comment.user?.fullname || 'Anonymous',
+      rating: comment.star,
+      comment: comment.content,
+      createdAt: comment.createdAt,
+    }));
+
+    // Gửi phản hồi với danh sách các bình luận đã được định dạng
+    res.status(200).json({
+      data: formattedComments,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
+  }
+};
