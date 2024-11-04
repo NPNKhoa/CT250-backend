@@ -32,6 +32,7 @@ import statictis from './routes/statictis.route.js';
 import voucherRoutes from './routes/voucher.route.js';
 import categoryRoute from './routes/category.route.js';
 import recomendationRoute from './routes/recommendation.route.js';
+import acticleRoute from './routes/article.route.js';
 
 import cron from 'node-cron';
 
@@ -84,6 +85,7 @@ app.use(`/api/${apiVersion}/stat`, statictis);
 app.use(`/api/${apiVersion}/vouchers`, voucherRoutes);
 app.use(`/api/${apiVersion}/categories`, categoryRoute);
 app.use(`/api/${apiVersion}/recommendation`, recomendationRoute);
+app.use(`/api/${apiVersion}/article`, acticleRoute);
 app.get(
   '/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
