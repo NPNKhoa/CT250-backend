@@ -4,6 +4,78 @@ import logError from '../utils/logError.js';
 import { productValidation } from '../utils/validation.js';
 import mongoose from 'mongoose';
 
+export const find = async (req, res) => {
+  try {
+    const {
+      searchString = '',
+      limit = 10,
+    } = req.query;
+
+    const parsedLimit = parseInt(limit, 10);
+
+    let matchedProductTypes = [];
+    let matchedBrands = [];
+    let remainingWords = [];
+
+    if (searchString) {
+      const allProductTypes = await mongoose.connection.db
+        .collection('producttypes')
+        .find({})
+        .toArray();
+      const allBrands = await mongoose.connection.db
+        .collection('brands')
+        .find({})
+        .toArray();
+
+      const words = searchString.trim().split(' ');
+
+      words.forEach((word) => {
+        const lowerCaseWord = word.toLowerCase();
+
+        const matchedProductType = allProductTypes.find((type) =>
+          type.productTypeName.toLowerCase().includes(lowerCaseWord)
+        );
+        if (matchedProductType) {
+          matchedProductTypes.push(matchedProductType._id);
+          return;
+        }
+
+        const matchedBrand = allBrands.find((brand) =>
+          brand.brandName.toLowerCase().includes(lowerCaseWord)
+        );
+        if (matchedBrand) {
+          matchedBrands.push(matchedBrand._id);
+          return;
+        }
+
+        remainingWords.push(word);
+      });
+
+      console.log('productType: ', matchedProductTypes);
+      console.log('brand: ', matchedBrands);
+
+      const searchTerms = searchString.split(" ");
+
+      const products = await Product.find({
+        $or: searchTerms.map(term => ({ productName: new RegExp(term, "i") }))       
+      })
+
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(404).json({ error: 'Products not found' });
+    }
+
+    res.status(200).json({
+      data: products,
+      error: false,
+    });
+  } else {
+    return res.status(400).json({ error: 'Search string is required' });
+  }
+} catch (error) {
+  logError(error, res);
+}
+};
+
 export const getAllProducts = async (req, res) => {
   try {
     const {
@@ -115,7 +187,7 @@ export const getAllProducts = async (req, res) => {
       const matchedCategory = await mongoose.connection.db
         .collection('categories')
         .findOne({ categoryName: category })
-      console.log(matchedCategory)
+
       pipeline.push({
         $match: {
           'categoryDetails._id': matchedCategory._id,
