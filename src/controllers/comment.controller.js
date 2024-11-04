@@ -122,6 +122,11 @@ export const getAllComments = async (req, res) => {
       .populate({
         path: 'product',
         select: 'productName productImagePath',
+      })
+      .populate({
+        path: 'replies.user', // Populate cho user trong replies
+        model: 'User',
+        select: 'fullname', // Lấy tên đầy đủ của người dùng trong replies
       });
 
     // Định dạng lại dữ liệu trả về
@@ -133,6 +138,13 @@ export const getAllComments = async (req, res) => {
       rating: comment.star,
       comment: comment.content,
       createdAt: comment.createdAt,
+      replies: [
+        ...comment.replies.map((reply) => ({
+          user: reply.user?.fullname || 'Anonymous',
+          content: reply.content,
+          createdAt: reply.createdAt,
+        })),
+      ],
     }));
 
     // Gửi phản hồi với danh sách các bình luận đã được định dạng
@@ -142,5 +154,27 @@ export const getAllComments = async (req, res) => {
     });
   } catch (error) {
     logError(error, res);
+  }
+};
+
+export const addReply = async (req, res) => {
+  const { userId } = req.userId;
+  const { reviewId } = req.params;
+  const { replyContent } = req.body;
+
+  try {
+    // Tìm review theo ID
+    const review = await Comment.findById(reviewId);
+    if (!review) return res.status(404).json({ message: 'Review not found' });
+
+    // Thêm câu trả lời vào mảng replies của review
+    review.replies.push({ user: userId, content: replyContent });
+    await review.save();
+
+    res.status(200).json({ message: 'Reply added successfully', review });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: 'Error adding reply', error: error.message });
   }
 };

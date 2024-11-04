@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+  addReply,
   createComment,
   getAllComments,
   getAllProductComment,
@@ -10,6 +11,7 @@ const router = express.Router();
 
 router.get('/byproduct', getAllProductComment);
 router.get('/all', getAllComments);
+router.post('/:reviewId', auth, addReply);
 
 router.post('/', auth, createComment);
 
