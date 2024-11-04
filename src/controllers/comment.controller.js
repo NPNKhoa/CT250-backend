@@ -52,6 +52,18 @@ export const createComment = async (req, res) => {
       });
     }
 
+    // Kiểm tra xem người dùng đã bình luận sản phẩm này chưa
+    const existingComment = await Comment.findOne({
+      user: userId,
+      product: productId,
+    });
+
+    if (existingComment) {
+      return res
+        .status(400)
+        .json({ error: 'You can only comment once per product!' });
+    }
+
     // Tạo bình luận mới
     const newComment = await Comment.create({
       user: userId,
@@ -176,5 +188,29 @@ export const addReply = async (req, res) => {
     res
       .status(500)
       .json({ message: 'Error adding reply', error: error.message });
+  }
+};
+
+export const deleteComment = async (req, res) => {
+  const { reviewId } = req.params;
+
+  // Kiểm tra tính hợp lệ của reviewId
+  if (!isValidObjectId(reviewId)) {
+    return res.status(400).json({ error: 'Invalid comment id' });
+  }
+
+  try {
+    // Tìm và xóa comment cùng một lúc
+    const result = await Comment.findByIdAndDelete(reviewId);
+
+    if (!result) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    return res
+      .status(200)
+      .json({ success: true, message: 'Comment deleted successfully' });
+  } catch (error) {
+    logError(error, res);
   }
 };
