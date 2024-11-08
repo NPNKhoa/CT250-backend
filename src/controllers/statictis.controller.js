@@ -214,6 +214,7 @@ export const getStatisticsByDateRange = async (req, res) => {
     ]);
 
     // 3. Tính tổng số lượng sản phẩm bán ra theo loại sản phẩm
+
     const productTypeData = await Order.aggregate([
       {
         $match: {
@@ -247,8 +248,19 @@ export const getStatisticsByDateRange = async (req, res) => {
       },
       {
         $lookup: {
+          from: 'categories',
+          localField: 'product.category',
+          foreignField: '_id',
+          as: 'category',
+        },
+      },
+      {
+        $unwind: '$category',
+      },
+      {
+        $lookup: {
           from: 'producttypes',
-          localField: 'product.productType',
+          localField: 'category.productType',
           foreignField: '_id',
           as: 'productType',
         },
@@ -279,7 +291,27 @@ export const getStatisticsByDateRange = async (req, res) => {
           totalProductsSold: { $sum: '$totalSold' },
         },
       },
+      {
+        $group: {
+          _id: null,
+          dailyData: {
+            $push: {
+              orderDate: '$_id',
+              productTypes: '$productTypes',
+              totalProductsSold: '$totalProductsSold',
+            },
+          },
+          totalSoldByProductType: {
+            $sum: '$totalProductsSold',
+          },
+          productTypesTotal: {
+            $push: '$productTypes',
+          },
+        },
+      },
     ]);
+
+    // console.log('Product Type Data:', JSON.stringify(productTypeData, null, 2));
 
     // Tính tổng doanh thu và tổng đơn hàng trong toàn bộ khoảng thời gian
     const totalStatistics = revenueData.reduce(
@@ -290,6 +322,7 @@ export const getStatisticsByDateRange = async (req, res) => {
       },
       { totalRevenue: 0, totalOrders: 0 }
     );
+
     const productTypesList = await ProductType.find().select('productTypeName');
 
     // 4. Xây dựng dữ liệu trả về với các thống kê đã yêu cầu
@@ -309,28 +342,34 @@ export const getStatisticsByDateRange = async (req, res) => {
       };
 
       // Tìm dữ liệu thống kê loại sản phẩm cho ngày đó
-      const productTypeStats =
-        productTypeData.find((data) => data._id === day)?.productTypes || [];
-      const totalProductsSold =
-        productTypeData.find((data) => data._id === day)?.totalProductsSold ||
-        0;
+
+      const productTypeDataForDay = productTypeData[0]?.dailyData.find(
+        (data) => data.orderDate === day
+      );
+
+      const productTypeStats = productTypeDataForDay
+        ? productTypeDataForDay.productTypes
+        : [];
+
+      const totalProductsSold = productTypeDataForDay
+        ? productTypeDataForDay.totalProductsSold
+        : 0;
 
       // Sử dụng danh sách loại sản phẩm từ DB thay vì giá trị mặc định
       const finalProductTypes = productTypesList.map((productType) => {
         const actualType = productTypeStats.find(
           (type) => type.productType === productType.productTypeName
         );
-        return (
-          actualType || {
-            productType: productType.productTypeName,
-            totalSold: 0,
-          }
-        ); // Nếu không có, giữ giá trị 0
+
+        return {
+          productType: productType.productTypeName,
+          totalSold: actualType ? actualType.totalSold : 0,
+        };
       });
 
       // Lấy thông tin tổng đơn hàng theo trạng thái cho ngày đó
       const orderStatusForDay = orderStatusData
-        .filter((status) => status.orderDate === day) // Lọc ra trạng thái theo ngày hiện tại
+        .filter((status) => status.orderDate === day)
         .reduce((acc, status) => {
           if (!acc[status.orderStatus]) {
             acc[status.orderStatus] = 0;
@@ -360,14 +399,31 @@ export const getStatisticsByDateRange = async (req, res) => {
             totalOrders: orderStatusForDay['Đã hủy'] || 0,
           },
         ],
-        productTypeStatistics: [
-          {
-            productTypes: finalProductTypes,
-            totalProductsSold: totalProductsSold,
-          },
-        ],
+        productTypeStatistics: {
+          productTypes: finalProductTypes,
+          totalProductsSold: totalProductsSold,
+        },
       };
     });
+
+    const groupedData = productTypeData[0]?.productTypesTotal
+      .flat()
+      .reduce((acc, item) => {
+        if (acc[item.productType]) {
+          acc[item.productType] += item.totalSold;
+        } else {
+          acc[item.productType] = item.totalSold;
+        }
+        return acc;
+      }, {});
+
+    // Đưa kết quả vào dạng mảng để dễ đọc
+    const result = Object.entries(groupedData).map(
+      ([productType, totalSold]) => ({
+        productType,
+        totalSold,
+      })
+    );
 
     return res.status(200).json({
       message: 'Thống kê thành công',
@@ -375,8 +431,8 @@ export const getStatisticsByDateRange = async (req, res) => {
         statisticsByDate: fullData,
         totalRevenue: totalStatistics.totalRevenue,
         totalOrders: totalStatistics.totalOrders,
-        totalProductsSold: productTypeData[0]?.totalProductsSold || 0,
-        productTypeSummary: productTypeData[0]?.productTypes || [],
+        totalProductsSold: productTypeData[0]?.totalSoldByProductType || 0,
+        productTypeSummary: result || [],
         dateRange: { startDate, endDate },
       },
     });
@@ -510,8 +566,19 @@ export const getStatisticsByYear = async (req, res) => {
       },
       {
         $lookup: {
+          from: 'categories',
+          localField: 'product.category',
+          foreignField: '_id',
+          as: 'category',
+        },
+      },
+      {
+        $unwind: '$category',
+      },
+      {
+        $lookup: {
           from: 'producttypes',
-          localField: 'product.productType',
+          localField: 'category.productType',
           foreignField: '_id',
           as: 'productType',
         },
@@ -540,6 +607,24 @@ export const getStatisticsByYear = async (req, res) => {
           totalProductsSold: { $sum: '$totalSold' },
         },
       },
+      {
+        $group: {
+          _id: null,
+          dailyData: {
+            $push: {
+              month: '$_id',
+              productTypes: '$productTypes',
+              totalProductsSold: '$totalProductsSold',
+            },
+          },
+          totalSoldByProductType: {
+            $sum: '$totalProductsSold',
+          },
+          productTypesTotal: {
+            $push: '$productTypes',
+          },
+        },
+      },
     ]);
 
     // Tính tổng doanh thu và tổng đơn hàng trong toàn bộ năm
@@ -566,25 +651,33 @@ export const getStatisticsByYear = async (req, res) => {
       };
 
       // Tìm dữ liệu thống kê loại sản phẩm cho tháng đó
-      const productTypeStats =
-        productTypeData.find((data) => data._id === month)?.productTypes || [];
-      const totalProductsSold =
-        productTypeData.find((data) => data._id === month)?.totalProductsSold ||
-        0;
+      // console.log(productTypeData[0]?.dailyData);
+
+      const productTypeDataForDay = productTypeData[0]?.dailyData.find(
+        (data) => data.month === month
+      );
+
+      const productTypeStats = productTypeDataForDay
+        ? productTypeDataForDay.productTypes.flat() // Gộp các sản phẩm lại để xử lý dễ hơn
+        : [];
+
+      const totalProductsSold = productTypeDataForDay
+        ? productTypeDataForDay.totalProductsSold
+        : 0;
 
       // Sử dụng danh sách loại sản phẩm từ DB thay vì giá trị mặc định
       const finalProductTypes = productTypesList.map((productType) => {
         const actualType = productTypeStats.find(
           (type) => type.productType === productType.productTypeName
         );
-        return (
-          actualType || {
-            productType: productType.productTypeName,
-            totalSold: 0,
-          }
-        ); // Nếu không có, giữ giá trị 0
+
+        return {
+          productType: productType.productTypeName,
+          totalSold: actualType ? actualType.totalSold : 0,
+        };
       });
 
+      console.log(finalProductTypes);
       // Lấy thông tin tổng đơn hàng theo trạng thái cho tháng đó
       const orderStatusForMonth = orderStatusData
         .filter((status) => status.month === month)
@@ -625,6 +718,24 @@ export const getStatisticsByYear = async (req, res) => {
         ],
       };
     });
+    const groupedData = productTypeData[0]?.productTypesTotal
+      .flat()
+      .reduce((acc, item) => {
+        if (acc[item.productType]) {
+          acc[item.productType] += item.totalSold;
+        } else {
+          acc[item.productType] = item.totalSold;
+        }
+        return acc;
+      }, {});
+
+    // Đưa kết quả vào dạng mảng để dễ đọc
+    const result = Object.entries(groupedData).map(
+      ([productType, totalSold]) => ({
+        productType,
+        totalSold,
+      })
+    );
 
     return res.status(200).json({
       message: 'Thống kê thành công',
@@ -632,8 +743,8 @@ export const getStatisticsByYear = async (req, res) => {
         statisticsByMonth: fullData,
         totalRevenue: totalStatistics.totalRevenue,
         totalOrders: totalStatistics.totalOrders,
-        totalProductsSold: productTypeData[0]?.totalProductsSold || 0,
-        productTypeSummary: productTypeData[0]?.productTypes || [],
+        totalProductsSold: productTypeData[0]?.totalSoldByProductType || 0,
+        productTypeSummary: result || [],
       },
       year,
     });

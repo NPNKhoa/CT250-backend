@@ -1,5 +1,24 @@
 import mongoose from 'mongoose';
 
+const replySchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const productReviewSchema = new mongoose.Schema(
   {
     user: {
@@ -26,14 +45,7 @@ const productReviewSchema = new mongoose.Schema(
         default: '',
       },
     ],
-    replyUser: {
-      type: mongoose.Types.ObjectId,
-      ref: 'User',
-    },
-    replyContent: {
-      type: String,
-      default: '',
-    },
+    replies: [replySchema],
   },
   {
     timestamps: true,

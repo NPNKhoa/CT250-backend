@@ -460,7 +460,7 @@ export const loginAdminPage = async (req, res) => {
     }
 
     // Kiểm tra vai trò người dùng
-    const allowedRoles = ['Quản trị viên', 'Nhân viên'];
+    const allowedRoles = ['admin', 'staff'];
     if (!allowedRoles.includes(existingUser.role.role)) {
       return res.status(403).json({
         error: 'Access denied! Only admin and staff can login.',
@@ -487,5 +487,47 @@ export const loginAdminPage = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateRole = async (req, res) => {
+  try {
+    const { userId: adminId } = req.userId;
+
+    if (!adminId) {
+      return res.status(401).json({
+        error: 'Invalid credentials',
+      });
+    }
+
+    const { userId, newRoleId } = req.body;
+
+    // Kiểm tra vai trò mới có tồn tại không
+    const newRole = await UserRole.findById(newRoleId);
+    if (!newRole) {
+      return res.status(404).json({
+        error: 'Role not found',
+      });
+    }
+
+    // Tìm người dùng và cập nhật vai trò
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+      });
+    }
+
+    // Cập nhật vai trò của người dùng
+    user.role = newRoleId;
+    await user.save();
+
+    res.status(200).json({
+      message: 'User role updated successfully',
+      data: user,
+      error: false,
+    });
+  } catch (error) {
+    logError(error, res);
   }
 };

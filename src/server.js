@@ -31,6 +31,10 @@ import priceFilterRoutes from './routes/priceFilter.route.js';
 import statictis from './routes/statictis.route.js';
 import voucherRoutes from './routes/voucher.route.js';
 import categoryRoute from './routes/category.route.js';
+import recomendationRoute from './routes/recommendation.route.js';
+import acticleRoute from './routes/article.route.js';
+
+import cron from 'node-cron';
 
 dotenv.config({ path: `${process.cwd()}/.env` });
 
@@ -80,6 +84,8 @@ app.use(`/api/${apiVersion}/price-filter`, priceFilterRoutes);
 app.use(`/api/${apiVersion}/stat`, statictis);
 app.use(`/api/${apiVersion}/vouchers`, voucherRoutes);
 app.use(`/api/${apiVersion}/categories`, categoryRoute);
+app.use(`/api/${apiVersion}/recommendation`, recomendationRoute);
+app.use(`/api/${apiVersion}/article`, acticleRoute);
 app.get(
   '/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
@@ -100,4 +106,25 @@ app.use('*', (_, res) => {
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
+});
+
+// Thiết lập lịch trình chạy tự động mỗi ngày lúc 00:00
+cron.schedule('00 00 * * *', async () => {
+  try {
+    const response = await fetch('http://localhost:5000/api/v1/order-status', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Không thể gọi API');
+    }
+
+    const data = await response.json();
+    console.log('Kết quả hủy đơn hàng:', data.message);
+  } catch (error) {
+    console.error('Lỗi khi gọi API hủy đơn hàng:', error.message);
+  }
 });

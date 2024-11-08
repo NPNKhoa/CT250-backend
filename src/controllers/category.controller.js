@@ -25,7 +25,34 @@ export const getAllCategory = async (_, res) => {
 
 export const createCategory = async (req, res) => {
   try {
-    let { categoryName, productType, brand } = req.body; // objectId
+    let { categoryName, productType, brand } = req.body;
+
+    let existingProductType = '';
+    let existingBrand = '';
+
+    if (productType) {
+      existingProductType = await ProductType.findById(productType);
+
+      if (!existingProductType) {
+        return res.status(400).json({
+          error: 'Not found product type',
+        });
+      }
+    }
+
+    if (brand) {
+      existingBrand = await Brand.findById(brand);
+
+      if (!existingBrand) {
+        return res.status(400).json({
+          error: 'Not found brand',
+        });
+      }
+    }
+
+    if (!categoryName) {
+      categoryName = `${existingProductType.productTypeName} ${existingBrand.brandName}`;
+    }
 
     const existingCategory = await Category.findOne({ categoryName });
 
@@ -35,28 +62,13 @@ export const createCategory = async (req, res) => {
       });
     }
 
-    const existingProductType = await ProductType.findById(productType);
+    const data = {
+      categoryName: categoryName,
+      productType: productType || null,
+      brand: brand || null
+    };
 
-    if (!existingProductType) {
-      return res.status(400).json({
-        error: 'Not found product type',
-      });
-    }
-
-    const existingBrand = await Brand.findById(brand);
-
-    if (!existingBrand) {
-      return res.status(400).json({
-        error: 'Not found brand',
-      });
-    }
-
-
-    if (!categoryName) {
-      categoryName = `${existingProductType.productTypeName} ${existingBrand.brandName}`;
-    }
-
-    const newCategory = await Category.create({ categoryName, productType, brand });
+    const newCategory = await Category.create(data);
 
     await newCategory.save();
     console.log(newCategory);

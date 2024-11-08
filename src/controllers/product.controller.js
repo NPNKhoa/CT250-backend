@@ -4,20 +4,18 @@ import logError from '../utils/logError.js';
 import { productValidation } from '../utils/validation.js';
 import mongoose from 'mongoose';
 
-export const getAllProducts = async (req, res) => {
+export const find = async (req, res) => {
   try {
     const {
       searchString = '',
-      category = '',
-      minPrice = null,
-      maxPrice = null,
-      page = 1,
       limit = 10,
-      isDesc = false,
-      sortBy = '',
     } = req.query;
 
-    const query = {};
+    const parsedLimit = parseInt(limit, 10);
+
+    let matchedProductTypes = [];
+    let matchedBrands = [];
+    let remainingWords = [];
 
     if (searchString) {
       const allProductTypes = await mongoose.connection.db
@@ -30,10 +28,6 @@ export const getAllProducts = async (req, res) => {
         .toArray();
 
       const words = searchString.trim().split(' ');
-
-      const matchedProductTypes = [];
-      const matchedBrands = [];
-      const remainingWords = [];
 
       words.forEach((word) => {
         const lowerCaseWord = word.toLowerCase();
@@ -57,21 +51,102 @@ export const getAllProducts = async (req, res) => {
         remainingWords.push(word);
       });
 
+      console.log('productType: ', matchedProductTypes);
+      console.log('brand: ', matchedBrands);
+
+      const searchTerms = searchString.split(" ");
+
+      const products = await Product.find({
+        $or: searchTerms.map(term => ({ productName: new RegExp(term, "i") }))       
+      })
+
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(404).json({ error: 'Products not found' });
+    }
+
+    res.status(200).json({
+      data: products,
+      error: false,
+    });
+  } else {
+    return res.status(400).json({ error: 'Search string is required' });
+  }
+} catch (error) {
+  logError(error, res);
+}
+};
+
+export const getAllProducts = async (req, res) => {
+  try {
+    const {
+      searchString = '',
+      category = '',
+      productType = '',
+      brand = '',
+      minPrice = null,
+      maxPrice = null,
+      minPercentDiscount = null,
+      maxPercentDiscount = null,
+      page = 1,
+      limit = 10,
+      isDesc = false,
+      sortBy = '',
+    } = req.query;
+
+    const query = {};
+
+    let matchedProductTypes = [];
+    let matchedBrands = [];
+    const remainingWords = [];
+
+    if (searchString) {
+      const allProductTypes = await mongoose.connection.db
+        .collection('producttypes')
+        .find({})
+        .toArray();
+      const allBrands = await mongoose.connection.db
+        .collection('brands')
+        .find({})
+        .toArray();
+
+      const words = searchString.trim().split(' ');
+
+      words.forEach((word) => {
+        remainingWords.push(word);
+
+        const lowerCaseWord = word.toLowerCase();
+
+        const matchedProductType = allProductTypes.find((type) =>
+          type.productTypeName.toLowerCase().includes(lowerCaseWord)
+        );
+        if (matchedProductType) {
+          matchedProductTypes.push(matchedProductType._id);
+          return;
+        }
+
+        const matchedBrand = allBrands.find((brand) =>
+          brand.brandName.toLowerCase().includes(lowerCaseWord)
+        );
+        if (matchedBrand) {
+          matchedBrands.push(matchedBrand._id);
+          return;
+        }
+      });
+
       if (remainingWords.length > 0) {
         query.productName = { $regex: remainingWords.join(' '), $options: 'i' };
       }
 
-      if (matchedProductTypes.length > 0) {
-        query.productType = { $in: matchedProductTypes };
-      }
+      // if (matchedProductTypes.length > 0) {
+      //   query.productType = { $in: matchedProductTypes };
+      // }
 
-      if (matchedBrands.length > 0) {
-        query.productBrand = { $in: matchedBrands };
-      }
+      // if (matchedBrands.length > 0) {
+      //   query.productBrand = { $in: matchedBrands };
     }
 
     if (minPrice || maxPrice) {
-      query.price = {};
+      query.discountedPrice = {};
       if (minPrice) {
         query.discountedPrice.$gte = parseFloat(minPrice);
       }
@@ -82,7 +157,6 @@ export const getAllProducts = async (req, res) => {
 
     const pipeline = [{ $match: query }];
 
-    // if (category && category.trim() !== '') {
     pipeline.push({
       $lookup: {
         from: 'categories',
@@ -92,12 +166,63 @@ export const getAllProducts = async (req, res) => {
       },
     });
     pipeline.push({ $unwind: '$categoryDetails' });
-    pipeline.push({
-      $match: {
-        'categoryDetails.categoryName': { $regex: category, $options: 'i' },
-      },
-    });
+
+    // if (matchedProductTypes.length > 0) {
+    //   pipeline.push({
+    //     $match: {
+    //       'categoryDetails.productType': { $in: matchedProductTypes },
+    //     }
+    //   });
     // }
+
+    // if (matchedBrands.length > 0) {
+    //   pipeline.push({
+    //     $match: {
+    //       'categoryDetails.productType': { $in: matchedBrands },
+    //     }
+    //   });
+    // }
+
+    if (category && category.trim() !== '') {
+      const matchedCategory = await mongoose.connection.db
+        .collection('categories')
+        .findOne({ categoryName: category })
+
+      pipeline.push({
+        $match: {
+          'categoryDetails._id': matchedCategory._id,
+        }
+      });
+    }
+
+    if (productType && productType.trim() !== '') {
+      const matchedProductType = await mongoose.connection.db
+        .collection('producttypes')
+        .findOne({ productTypeName: productType })
+
+      pipeline.push({
+        $match: {
+          'categoryDetails.productType': matchedProductType._id,
+        }
+      });
+    }
+
+    if (brand) {
+      const brands = brand.split(',');
+
+      const matchedBrands = await mongoose.connection.db
+        .collection('brands')
+        .find({ brandName: { $in: brands } })
+        .toArray();
+
+      const brandIds = matchedBrands.map(b => b._id);
+
+      pipeline.push({
+        $match: {
+          'categoryDetails.brand': { $in: brandIds },
+        }
+      });
+    }
 
     pipeline.push({
       $lookup: {
@@ -108,6 +233,43 @@ export const getAllProducts = async (req, res) => {
       },
     });
     pipeline.push({ $unwind: '$discountDetails' });
+
+    if (minPercentDiscount || maxPercentDiscount) {
+      if (minPercentDiscount) {
+        pipeline.push({
+          $match: {
+            'discountDetails.discountPercent': { $gte: parseFloat(minPercentDiscount) },
+          }
+        });
+      }
+      if (maxPercentDiscount) {
+        pipeline.push({
+          $match: {
+            'discountDetails.discountPercent': { $lte: parseFloat(maxPercentDiscount) },
+          }
+        });
+      }
+    }
+
+    pipeline.push({
+      $lookup: {
+        from: 'producttypes',
+        localField: 'categoryDetails.productType',
+        foreignField: '_id',
+        as: 'productTypeDetails',
+      },
+    });
+    pipeline.push({ $unwind: '$productTypeDetails' });
+
+    // pipeline.push({
+    //   $lookup: {
+    //     from: 'brands',
+    //     localField: 'categoryDetails.brand',
+    //     foreignField: '_id',
+    //     as: 'brandDetails',
+    //   },
+    // });
+    // pipeline.push({ $unwind: '$brandDetails' });
 
     let sortStage = {};
 
@@ -249,7 +411,7 @@ export const addProduct = async (req, res) => {
       ...payload,
     };
 
-    console.log(productInfo);
+    // console.log(productInfo);
 
     const newProduct = await Product.create(productInfo);
 
