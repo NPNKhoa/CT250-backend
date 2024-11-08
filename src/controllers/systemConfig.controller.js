@@ -69,7 +69,9 @@ export const updateConfig = async (req, res) => {
   try {
     const { shopName, shopEmail, shopPhoneNumber, shopIntroduction } = req.body;
 
-    const shopLogoImgPath = req?.file?.path;
+    const shopLogoImgPath = req.files?.shopLogoImgPath?.[0]?.path;
+
+    console.log(req?.files);
 
     const prevConfig = await SystemConfig.findOne({
       isChoose: true,
