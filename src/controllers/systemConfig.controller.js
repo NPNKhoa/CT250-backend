@@ -301,7 +301,7 @@ export const addBanner = async (req, res) => {
     const bannerFiles = req?.files;
     let { isActiveBanner } = req.body;
 
-    isActiveBanner = isActiveBanner === 'true';
+    isActiveBanner = true;
 
     if (!bannerFiles || bannerFiles.length === 0) {
       return res.status(400).json({
@@ -493,13 +493,9 @@ export const deleteBanner = async (req, res) => {
       item._id.equals(deletedBanner._id)
     );
 
-    if (deletedIndex === -1) {
-      return res.status(400).json({
-        error: 'Banner not found in system config',
-      });
+    if (deletedIndex !== -1) {
+      currentConfig.banners.splice(deletedIndex, 1);
     }
-
-    currentConfig.banners.splice(deletedIndex, 1);
 
     await currentConfig.save();
 
