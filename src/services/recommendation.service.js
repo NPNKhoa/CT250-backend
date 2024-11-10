@@ -21,25 +21,9 @@ export class RecommendationService {
       order.orderDetail.map((cartDetail) => cartDetail.product._id)
     );
 
-    const reviewedProducts = (
-      await ProductReview.find({
-        user: userId,
-      }).populate({
-        path: 'product',
-        model: 'Product',
-        select: '_id',
-      })
-    ).map((review) => review.product._id);
-
-    const interactedProducts = new Set([
-      ...purchasedProducts,
-      ...reviewedProducts,
-    ]);
-
-    console.log(interactedProducts);
-
     const similarUsers = await User.aggregate([
       { $match: { _id: { $ne: userId } } },
+
       {
         $lookup: {
           from: 'orders',
@@ -48,6 +32,7 @@ export class RecommendationService {
           as: 'userOrders',
         },
       },
+
       {
         $lookup: {
           from: 'productreviews',
@@ -56,12 +41,9 @@ export class RecommendationService {
           as: 'userReviews',
         },
       },
-      {
-        $unwind: {
-          path: '$userOrders',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
+
+      { $unwind: { path: '$userOrders', preserveNullAndEmptyArrays: true } },
+
       {
         $lookup: {
           from: 'cartdetails',
@@ -70,57 +52,106 @@ export class RecommendationService {
           as: 'orderDetailsProducts',
         },
       },
+
       {
         $project: {
-          _id: 1,
           productsFromOrders: {
             $map: {
               input: '$orderDetailsProducts',
               as: 'cartDetail',
-              in: '$$cartDetail.product',
+              in: {
+                productId: '$$cartDetail.product',
+                purchaseScore: 1,
+                reviewScore: 0,
+              },
             },
           },
+
           productsFromReviews: {
             $map: {
               input: '$userReviews',
               as: 'review',
-              in: '$$review.product',
+              in: {
+                productId: '$$review.product',
+                purchaseScore: 0,
+                reviewScore: {
+                  $cond: {
+                    if: { $gte: ['$$review.star', 4] },
+                    then: 2,
+                    else: {
+                      $cond: {
+                        if: { $eq: ['$$review.star', 3] },
+                        then: 1,
+                        else: 0,
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
       },
+
       {
         $project: {
           allProducts: {
             $concatArrays: ['$productsFromOrders', '$productsFromReviews'],
           },
+          productIds: {
+            $map: {
+              input: {
+                $concatArrays: ['$productsFromOrders', '$productsFromReviews'],
+              },
+              as: 'productDetail',
+              in: '$$productDetail.productId',
+            },
+          },
         },
       },
+
       {
-        $unwind: '$allProducts',
+        $match: {
+          allProducts: { $ne: [] },
+        },
       },
+
+      { $unwind: '$allProducts' },
+
       {
-        $match: { allProducts: { $nin: Array.from(interactedProducts) } },
+        $match: {
+          'allProducts.productId': { $nin: Array.from(purchasedProducts) },
+        },
       },
+
       {
         $group: {
-          _id: '$allProducts',
-          count: { $sum: 1 },
+          _id: '$allProducts.productId',
+          score: {
+            $sum: {
+              $add: ['$allProducts.purchaseScore', '$allProducts.reviewScore'],
+            },
+          },
         },
       },
-      { $sort: { count: -1 } },
+
+      {
+        $project: {
+          _id: 1,
+          allProducts: 1,
+          score: 1,
+        },
+      },
+
+      { $sort: { score: -1 } },
       { $limit: 5 },
     ]);
 
-    console.log(similarUsers);
+    console.log(JSON.stringify(similarUsers, null, 2));
 
     const recommendedProducts = await Product.find({
-      _id: {
-        $in: similarUsers.map((product) => product._id),
-      },
-    })
-      .limit(5)
-      .exec();
+      _id: { $in: similarUsers.map((product) => product._id) },
+    }).exec();
 
     return recommendedProducts;
   }

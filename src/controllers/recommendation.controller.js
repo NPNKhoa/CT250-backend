@@ -141,11 +141,7 @@ export const recomendationSimilarProduct = async (req, res) => {
 export const suggestProductForUser = async (req, res) => {
   const { userId } = req.userId;
   try {
-    const products = await RecommendationService.suggestProduct(userId, [
-      '6720a4d9164b5bc0ad1f550b',
-      '6720a4d7164b5bc0ad1f4e9c',
-      '6720a4da164b5bc0ad1f5a1d',
-    ]);
+    const products = await RecommendationService.suggestProduct(userId);
 
     res.status(200).json({
       data: products,
