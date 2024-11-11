@@ -69,7 +69,7 @@ export const getAllProducts = async (req, res) => {
         );
         if (matchedProductType) {
           matchedProductTypes.push(matchedProductType._id);
-          // return;
+          return;
         }
 
         const matchedBrand = allBrands.find((brand) =>
@@ -77,7 +77,7 @@ export const getAllProducts = async (req, res) => {
         );
         if (matchedBrand) {
           matchedBrands.push(matchedBrand._id);
-          // return;
+          return;
         }
 
         remainingWords.push(word);
