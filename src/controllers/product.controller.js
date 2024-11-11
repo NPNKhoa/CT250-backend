@@ -90,7 +90,7 @@ export const getAllProducts = async (req, res) => {
 
       if (remainingWords.length > 0) {
         const productNameQuery = remainingWords.map(word => ({
-          productName: new RegExp(word, 'i')
+          productName: { $regex: word, $options: 'i' }
         }));
         productSearchQuery.push({ $or: productNameQuery });
       }
@@ -108,9 +108,38 @@ export const getAllProducts = async (req, res) => {
       // }
 
       pipeline.push({
-        $match: {
-          $and: productSearchQuery
+        $facet: {
+          productNameMatches: [
+            {
+              $match: {
+                productName: { $regex: searchString, $options: 'i' }
+              }
+            }
+          ],
+          otherMatches: [
+            {
+              $match: {
+                $and: productSearchQuery
+              }
+            }
+          ]
         }
+      });
+      
+      pipeline.push({
+        $project: {
+          results: {
+            $concatArrays: ['$productNameMatches', '$otherMatches']
+          }
+        }
+      });
+      
+      pipeline.push({
+        $unwind: '$results'
+      });
+      
+      pipeline.push({
+        $replaceRoot: { newRoot: '$results' }
       });
     }
 
