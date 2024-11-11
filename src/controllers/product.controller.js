@@ -4,14 +4,46 @@ import logError from '../utils/logError.js';
 import { productValidation } from '../utils/validation.js';
 import mongoose from 'mongoose';
 
-export const find = async (req, res) => {
+export const getAllProducts = async (req, res) => {
   try {
     const {
       searchString = '',
+      category = '',
+      productType = '',
+      brand = '',
+      minPrice = null,
+      maxPrice = null,
+      minPercentDiscount = null,
+      maxPercentDiscount = null,
+      page = 1,
       limit = 10,
+      isDesc = false,
+      sortBy = '',
     } = req.query;
 
-    const parsedLimit = parseInt(limit, 10);
+    const query = {};
+
+    if (minPrice || maxPrice) {
+      query.discountedPrice = {};
+      if (minPrice) {
+        query.discountedPrice.$gte = parseFloat(minPrice);
+      }
+      if (maxPrice) {
+        query.discountedPrice.$lte = parseFloat(maxPrice);
+      }
+    }
+
+    const pipeline = [{ $match: query }];
+
+    pipeline.push({
+      $lookup: {
+        from: 'categories',
+        localField: 'category',
+        foreignField: '_id',
+        as: 'categoryDetails',
+      },
+    });
+    pipeline.push({ $unwind: '$categoryDetails' });
 
     let matchedProductTypes = [];
     let matchedBrands = [];
@@ -37,7 +69,7 @@ export const find = async (req, res) => {
         );
         if (matchedProductType) {
           matchedProductTypes.push(matchedProductType._id);
-          return;
+          // return;
         }
 
         const matchedBrand = allBrands.find((brand) =>
@@ -45,7 +77,7 @@ export const find = async (req, res) => {
         );
         if (matchedBrand) {
           matchedBrands.push(matchedBrand._id);
-          return;
+          // return;
         }
 
         remainingWords.push(word);
@@ -54,134 +86,33 @@ export const find = async (req, res) => {
       console.log('productType: ', matchedProductTypes);
       console.log('brand: ', matchedBrands);
 
-      const searchTerms = searchString.split(" ");
-
-      const products = await Product.find({
-        $or: searchTerms.map(term => ({ productName: new RegExp(term, "i") }))       
-      })
-
-    if (!Array.isArray(products) || products.length === 0) {
-      return res.status(404).json({ error: 'Products not found' });
-    }
-
-    res.status(200).json({
-      data: products,
-      error: false,
-    });
-  } else {
-    return res.status(400).json({ error: 'Search string is required' });
-  }
-} catch (error) {
-  logError(error, res);
-}
-};
-
-export const getAllProducts = async (req, res) => {
-  try {
-    const {
-      searchString = '',
-      category = '',
-      productType = '',
-      brand = '',
-      minPrice = null,
-      maxPrice = null,
-      minPercentDiscount = null,
-      maxPercentDiscount = null,
-      page = 1,
-      limit = 10,
-      isDesc = false,
-      sortBy = '',
-    } = req.query;
-
-    const query = {};
-
-    let matchedProductTypes = [];
-    let matchedBrands = [];
-    const remainingWords = [];
-
-    if (searchString) {
-      const allProductTypes = await mongoose.connection.db
-        .collection('producttypes')
-        .find({})
-        .toArray();
-      const allBrands = await mongoose.connection.db
-        .collection('brands')
-        .find({})
-        .toArray();
-
-      const words = searchString.trim().split(' ');
-
-      words.forEach((word) => {
-        remainingWords.push(word);
-
-        const lowerCaseWord = word.toLowerCase();
-
-        const matchedProductType = allProductTypes.find((type) =>
-          type.productTypeName.toLowerCase().includes(lowerCaseWord)
-        );
-        if (matchedProductType) {
-          matchedProductTypes.push(matchedProductType._id);
-          return;
-        }
-
-        const matchedBrand = allBrands.find((brand) =>
-          brand.brandName.toLowerCase().includes(lowerCaseWord)
-        );
-        if (matchedBrand) {
-          matchedBrands.push(matchedBrand._id);
-          return;
-        }
-      });
+      const productSearchQuery = [];
 
       if (remainingWords.length > 0) {
-        query.productName = { $regex: remainingWords.join(' '), $options: 'i' };
+        const productNameQuery = remainingWords.map(word => ({
+          productName: new RegExp(word, 'i')
+        }));
+        productSearchQuery.push({ $or: productNameQuery });
       }
 
-      // if (matchedProductTypes.length > 0) {
-      //   query.productType = { $in: matchedProductTypes };
+      if (matchedProductTypes.length > 0) {
+        productSearchQuery.push({ 'categoryDetails.productType': { $in: matchedProductTypes } });
+      }
+
+      if (matchedBrands.length > 0) {
+        productSearchQuery.push({ 'categoryDetails.brand': { $in: matchedBrands } });
+      }
+
+      // if (remainingWords.length > 0) {
+      //   productSearchQuery.push({ $regex: remainingWords.join(' '), $options: 'i' });
       // }
 
-      // if (matchedBrands.length > 0) {
-      //   query.productBrand = { $in: matchedBrands };
+      pipeline.push({
+        $match: {
+          $and: productSearchQuery
+        }
+      });
     }
-
-    if (minPrice || maxPrice) {
-      query.discountedPrice = {};
-      if (minPrice) {
-        query.discountedPrice.$gte = parseFloat(minPrice);
-      }
-      if (maxPrice) {
-        query.discountedPrice.$lte = parseFloat(maxPrice);
-      }
-    }
-
-    const pipeline = [{ $match: query }];
-
-    pipeline.push({
-      $lookup: {
-        from: 'categories',
-        localField: 'category',
-        foreignField: '_id',
-        as: 'categoryDetails',
-      },
-    });
-    pipeline.push({ $unwind: '$categoryDetails' });
-
-    // if (matchedProductTypes.length > 0) {
-    //   pipeline.push({
-    //     $match: {
-    //       'categoryDetails.productType': { $in: matchedProductTypes },
-    //     }
-    //   });
-    // }
-
-    // if (matchedBrands.length > 0) {
-    //   pipeline.push({
-    //     $match: {
-    //       'categoryDetails.productType': { $in: matchedBrands },
-    //     }
-    //   });
-    // }
 
     if (category && category.trim() !== '') {
       const matchedCategory = await mongoose.connection.db

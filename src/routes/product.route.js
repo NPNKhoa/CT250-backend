@@ -6,13 +6,10 @@ import {
   updateProduct,
   deleteProduct,
   uploadImage,
-  find,
 } from '../controllers/product.controller.js';
 import upload from '../configs/multerConfig.js';
 
 const router = express.Router();
-
-router.get('/find', find);
 
 router.get('/:id', getProductById);
 
