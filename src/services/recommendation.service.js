@@ -42,7 +42,14 @@ export class RecommendationService {
         },
       },
 
-      { $unwind: { path: '$userOrders', preserveNullAndEmptyArrays: true } },
+      {
+        $match: {
+          userOrders: { $ne: [] },
+          userReviews: { $ne: [] },
+        },
+      },
+
+      // { $unwind: { path: '$userOrders', preserveNullAndEmptyArrays: true } },
 
       {
         $lookup: {
@@ -58,15 +65,14 @@ export class RecommendationService {
           productsFromOrders: {
             $map: {
               input: '$orderDetailsProducts',
-              as: 'cartDetail',
+              as: 'orderProduct',
               in: {
-                productId: '$$cartDetail.product',
+                productId: '$$orderProduct.product',
                 purchaseScore: 1,
                 reviewScore: 0,
               },
             },
           },
-
           productsFromReviews: {
             $map: {
               input: '$userReviews',
@@ -138,8 +144,11 @@ export class RecommendationService {
       {
         $project: {
           _id: 1,
-          allProducts: 1,
-          score: 1,
+          // userOrders: 1,
+          // userReviews: 1,
+          orderDetailsProducts: 1,
+          productsFromOrders: 1,
+          productsFromReviews: 1,
         },
       },
 
