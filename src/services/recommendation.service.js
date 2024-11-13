@@ -34,6 +34,12 @@ export class RecommendationService {
       },
 
       {
+        $match: {
+          userOrders: { $ne: [] },
+        },
+      },
+
+      {
         $lookup: {
           from: 'productreviews',
           localField: '_id',
@@ -44,12 +50,11 @@ export class RecommendationService {
 
       {
         $match: {
-          userOrders: { $ne: [] },
           userReviews: { $ne: [] },
         },
       },
 
-      // { $unwind: { path: '$userOrders', preserveNullAndEmptyArrays: true } },
+      // // { $unwind: { path: '$userOrders', preserveNullAndEmptyArrays: true } },
 
       {
         $lookup: {
@@ -59,6 +64,8 @@ export class RecommendationService {
           as: 'orderDetailsProducts',
         },
       },
+
+      { $match: { _id: { $ne: userId } } },
 
       {
         $project: {
@@ -141,16 +148,16 @@ export class RecommendationService {
         },
       },
 
-      {
-        $project: {
-          _id: 1,
-          // userOrders: 1,
-          // userReviews: 1,
-          orderDetailsProducts: 1,
-          productsFromOrders: 1,
-          productsFromReviews: 1,
-        },
-      },
+      // {
+      //   $project: {
+      //     _id: 1,
+      //     // userOrders: 1,
+      //     // userReviews: 1,
+      //     orderDetailsProducts: 1,
+      //     productsFromOrders: 1,
+      //     productsFromReviews: 1,
+      //   },
+      // },
 
       { $sort: { score: -1 } },
       { $limit: 5 },
