@@ -2,6 +2,7 @@ import { Order } from '../models/order.model.js';
 import ProductReview from '../models/comment.model.js';
 import { User } from '../models/user.model.js';
 import { Product } from '../models/product.model.js';
+import mongoose from 'mongoose';
 
 export class RecommendationService {
   static async suggestProduct(userId) {
@@ -22,7 +23,7 @@ export class RecommendationService {
     );
 
     const similarUsers = await User.aggregate([
-      { $match: { _id: { $ne: userId } } },
+      { $match: { _id: { $ne: new mongoose.Types.ObjectId(userId) } } },
 
       {
         $lookup: {
@@ -48,11 +49,13 @@ export class RecommendationService {
         },
       },
 
-      {
-        $match: {
-          userReviews: { $ne: [] },
-        },
-      },
+      // {
+      //   $match: {
+      //     userReviews: { $ne: [] },
+      //   },
+      // },
+
+      // { $match: { _id: { $ne: userId } } },
 
       // // { $unwind: { path: '$userOrders', preserveNullAndEmptyArrays: true } },
 
@@ -65,7 +68,7 @@ export class RecommendationService {
         },
       },
 
-      { $match: { _id: { $ne: userId } } },
+      // { $match: { _id: { $ne: userId } } },
 
       {
         $project: {
@@ -152,10 +155,11 @@ export class RecommendationService {
       //   $project: {
       //     _id: 1,
       //     // userOrders: 1,
-      //     // userReviews: 1,
+      //     userReviews: 1,
       //     orderDetailsProducts: 1,
       //     productsFromOrders: 1,
       //     productsFromReviews: 1,
+      //     allProducts: 1,
       //   },
       // },
 
