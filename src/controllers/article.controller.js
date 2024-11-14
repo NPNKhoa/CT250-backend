@@ -37,7 +37,7 @@ export const addArticles = async (req, res) => {
 
 export const getAllArticles = async (req, res) => {
     try {
-        const { title = '', page = 1, limit = 10 } = req.query;
+        const { title = '', page = 1, limit = 5 } = req.query;
         const parsedLimit = parseInt(limit);
 
         const query = {};
