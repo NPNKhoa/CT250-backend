@@ -1,0 +1,430 @@
+[
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4d6164b5bc0ad1f4dfd",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4d6164b5bc0ad1f4e11",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "67220027f34e16b760cb801d",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5a9a",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5bef",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4d9164b5bc0ad1f54d0",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4d8164b5bc0ad1f5321",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5bc5",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4d9164b5bc0ad1f5900",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6721f42c1b086dac2541c98e",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5bc5",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6724755e6ad384ea783e9e6b",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6724755e6ad384ea783e9e6b",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6724755e6ad384ea783e9e6b",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5bef",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5bef",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5bef",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5bc5",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4d9164b5bc0ad1f5900",
+      "purchaseScore": 0,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4d6164b5bc0ad1f4e11",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6720a4d8164b5bc0ad1f5321",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6721f42c1b086dac2541c98e",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  },
+  {
+    "_id": "66d6ff39bc947d2055d96fbe",
+    "allProducts": {
+      "productId": "6724755e6ad384ea783e9e6b",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  },
+
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4d9164b5bc0ad1f54e3",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4d8164b5bc0ad1f53f9",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4dd164b5bc0ad1f665a",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4db164b5bc0ad1f5cd4",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5bf5",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4d7164b5bc0ad1f4efe",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4d8164b5bc0ad1f536c",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4d8164b5bc0ad1f5343",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4d8164b5bc0ad1f52a4",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4d7164b5bc0ad1f4eaa",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4d9164b5bc0ad1f551d",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66dff40d9acd65d29f5da9b4",
+    "allProducts": {
+      "productId": "6720a4d9164b5bc0ad1f5517",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+
+  {
+    "_id": "66e8ab74fa32ea6f5b33da1d",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5bf5",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+
+  {
+    "_id": "66f11b051bcf69dc8aa83663",
+    "allProducts": {
+      "productId": "6720a4d8164b5bc0ad1f536c",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66f11b051bcf69dc8aa83663",
+    "allProducts": {
+      "productId": "6720a4d7164b5bc0ad1f515a",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66f11b051bcf69dc8aa83663",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5a74",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "66f11b051bcf69dc8aa83663",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5afb",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5b61",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "672477b66ad384ea783ea1c4",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6724755e6ad384ea783e9e6b",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6724755d6ad384ea783e9dee",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6724755d6ad384ea783e9df4",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6724755d6ad384ea783e9df4",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6720a4d9164b5bc0ad1f5719",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6720a4d6164b5bc0ad1f4e50",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6721f42c1b086dac2541c98e",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6720a4da164b5bc0ad1f5bc5",
+      "purchaseScore": 1,
+      "reviewScore": 0
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6724755e6ad384ea783e9e6b",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6724755d6ad384ea783e9df4",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  },
+  {
+    "_id": "672f47a10719a1280159635c",
+    "allProducts": {
+      "productId": "6721f42c1b086dac2541c98e",
+      "purchaseScore": 0,
+      "reviewScore": 2
+    }
+  }
+]
