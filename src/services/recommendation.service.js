@@ -171,7 +171,9 @@ export class RecommendationService {
 
     const recommendedProducts = await Product.find({
       _id: { $in: similarUsers.map((product) => product._id) },
-    }).exec();
+    })
+      .populate('discount')
+      .exec();
 
     return recommendedProducts;
   }

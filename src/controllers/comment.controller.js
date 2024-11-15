@@ -3,7 +3,6 @@ import Comment from '../models/comment.model.js';
 import { Product } from '../models/product.model.js';
 import { isValidObjectId } from '../utils/isValidObjectId.js';
 import logError from '../utils/logError.js';
-import { populate } from 'dotenv';
 
 export const createComment = async (req, res) => {
   try {
@@ -16,6 +15,10 @@ export const createComment = async (req, res) => {
     }
 
     const { productId, content, star } = req.body;
+
+    const reviewImages = req?.files;
+
+    const reviewImagePath = reviewImages?.map((file) => file.path);
 
     if (!productId || !content || !star) {
       return res.status(400).json({
@@ -70,6 +73,7 @@ export const createComment = async (req, res) => {
       product: productId,
       content,
       star,
+      reviewImagePath,
     });
 
     // Tính toán và cập nhật giá trị trung bình đánh giá cho sản phẩm
