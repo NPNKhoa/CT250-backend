@@ -197,11 +197,7 @@ export const updateVoucher = async (req, res) => {
       maxUsage,
     } = req.body;
 
-    if (
-      voucherType &&
-      voucherType !== 'public' &&
-      voucherType !== 'private'
-    ) {
+    if (voucherType && voucherType !== 'public' && voucherType !== 'private') {
       return res.status(400).json({
         error: 'Invalid voucherType',
       });
@@ -277,7 +273,7 @@ export const getUserVouchers = async (req, res) => {
         path: 'voucherId',
         model: 'Voucher',
         select:
-          'voucherCode voucherName discountPercent maxPriceDiscount startDate expiredDate maxUsage',
+          'voucherCode voucherName discountPercent maxPriceDiscount startDate expiredDate maxUsage collectedCount',
       })
       .sort({ collectedAt: -1 }); // Sắp xếp theo thời gian thu thập giảm dần
 
