@@ -22,6 +22,9 @@ export class RecommendationService {
       order.orderDetail.map((cartDetail) => cartDetail.product._id)
     );
 
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     const similarUsers = await User.aggregate([
       { $match: { _id: { $ne: new mongoose.Types.ObjectId(userId) } } },
 
@@ -162,6 +165,33 @@ export class RecommendationService {
       //     allProducts: 1,
       //   },
       // },
+
+      {
+        $lookup: {
+          from: 'products',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'productDetails',
+        },
+      },
+
+      {
+        $unwind: '$productDetails',
+      },
+
+      {
+        $project: {
+          _id: 1,
+          score: 1,
+          createdAt: '$productDetails.createdAt',
+        },
+      },
+
+      {
+        $match: {
+          createdAt: { $gte: thirtyDaysAgo },
+        },
+      },
 
       { $sort: { score: -1 } },
       { $limit: 5 },
