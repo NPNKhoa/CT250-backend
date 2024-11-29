@@ -358,11 +358,21 @@ export const getOrderById = async (req, res) => {
         path: 'orderDetail',
         populate: {
           path: 'product',
-          select: 'productName discount productImagePath',
-          populate: {
-            path: 'discount',
-            select: 'discountPercent discountExpiredDate',
-          },
+          select: 'productName discount productImagePath promotion',
+          populate: [
+            {
+              path: 'promotion',
+              select: 'promotionPercent promotionExpiredDate productIds',
+              populate: {
+                path: 'productIds',
+                select: 'productName productImagePath price',
+              },
+            },
+            {
+              path: 'discount',
+              select: 'discountPercent discountExpiredDate',
+            },
+          ],
         },
       })
       .populate({

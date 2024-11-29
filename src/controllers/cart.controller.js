@@ -437,10 +437,18 @@ export const getCartDetail = async (req, res) => {
     const cartDetail = await CartDetail.findById(id).populate({
       path: 'product',
       model: 'Product',
-      select: 'productName discount productImagePath',
+      select: 'productName discount productImagePath promotion',
       populate: {
         path: 'discount',
         select: 'discountPercent discountExpiredDate',
+      },
+      populate: {
+        path: 'promotion',
+        select: 'promotionPercent promotionExpiredDate productIds',
+        populate: {
+          path: 'productIds',
+          select: 'productName productImagePath price',
+        },
       },
     });
 
